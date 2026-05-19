@@ -248,8 +248,7 @@ export default function GameCanvas() {
       {gameState === "playing" && (
         <VoiceSpecialButton
           onSpecial={triggerSpecial}
-          onPress={pressControl}
-          onRelease={releaseControl}
+          onAction={triggerVoiceAction}
         />
       )}
       {gameState === "playing" && (
@@ -258,6 +257,7 @@ export default function GameCanvas() {
     </div>
   );
 }
+
 
 // ── Mute toggle ───────────────────────────────────────────────────────────────
 
@@ -375,12 +375,10 @@ declare global {
 
 function VoiceSpecialButton({
   onSpecial,
-  onPress,
-  onRelease,
+  onAction,
 }: {
   onSpecial: () => void;
-  onPress: (key: string) => void;
-  onRelease: (key: string) => void;
+  onAction: (key: string, duration: number) => void;
 }) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const enabledRef = useRef(false);
@@ -459,9 +457,8 @@ function VoiceSpecialButton({
           setStatus("heard");
 
           if (moveKey) {
-            onPress(moveKey);
             const duration = moveKey === "ArrowUp" ? 250 : 800;
-            window.setTimeout(() => onRelease(moveKey), duration);
+            onAction(moveKey, duration);
           } else {
             onSpecial();
           }

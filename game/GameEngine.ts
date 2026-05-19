@@ -160,6 +160,16 @@ export class GameEngine {
 
   handleKeyUp(key: string) { this.heldKeys.delete(key); }
 
+  // New method to handle voice commands with internal timing
+  handleVoiceAction(key: string, durationMs: number) {
+    console.log(`[Engine] Comando de voz recibido: ${key} por ${durationMs}ms`);
+    this.handleKeyDown(key);
+    window.setTimeout(() => {
+      this.handleKeyUp(key);
+      console.log(`[Engine] Liberando comando: ${key}`);
+    }, durationMs);
+  }
+
   triggerSpecial() {
     this.pulseSpecial = true;
   }

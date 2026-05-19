@@ -70,6 +70,10 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
     engine.triggerSpecial();
   }, []);
 
+  const triggerVoiceAction = useCallback((key: string, duration: number) => {
+    engineRef.current?.handleVoiceAction(key, duration);
+  }, []);
+
   const pressControl = useCallback((key: string) => {
     engineRef.current?.handleKeyDown(key);
   }, []);
@@ -94,6 +98,7 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
     hud,
     startGame,
     triggerSpecial,
+    triggerVoiceAction,
     pressControl,
     releaseControl,
     goToMenu,
