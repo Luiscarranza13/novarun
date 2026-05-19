@@ -304,7 +304,7 @@ function MobileControls({
           aria-label="Mover izquierda"
           {...bindControl("ArrowLeft")}
         >
-          ←
+          IZQ
         </button>
         <button
           type="button"
@@ -312,7 +312,7 @@ function MobileControls({
           aria-label="Mover derecha"
           {...bindControl("ArrowRight")}
         >
-          →
+          DER
         </button>
       </div>
       <button
@@ -321,7 +321,7 @@ function MobileControls({
         aria-label="Saltar"
         {...bindControl("ArrowUp")}
       >
-        ↑
+        SALTO
       </button>
     </div>
   );
