@@ -1,0 +1,127 @@
+.root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas {
+  display: block;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated; /* Keeps it sharp when scaled */
+}
+
+.canvasHidden {
+  display: none !important;
+}
+
+.idleBg {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #0d0026, #1a0533, #0d1b2a);
+}
+
+.muteBtn {
+  position: absolute;
+  bottom: 42px;
+  right: 10px;
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  pointer-events: all;
+}
+
+.muteBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.menuMusicBtn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 40;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.62);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.menuMusicBtn:hover {
+  background: rgba(255, 215, 0, 0.14);
+  color: #ffffff;
+}
+
+.menuMusicBtnOn {
+  border-color: rgba(255, 215, 0, 0.82);
+  background: rgba(95, 76, 0, 0.78);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.28);
+}
+
+.voiceBtn {
+  position: absolute;
+  bottom: 42px;
+  right: 50px;
+  z-index: 25;
+  min-width: 104px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.58);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  pointer-events: all;
+}
+
+.voiceBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.voiceBtnActive {
+  border-color: rgba(68, 170, 255, 0.7);
+  color: #ffffff;
+  background: rgba(20, 70, 115, 0.78);
+}
+
+.voiceDot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.voiceBtnActive .voiceDot {
+  background: #44aaff;
+  box-shadow: 0 0 8px rgba(68, 170, 255, 0.95);
+}

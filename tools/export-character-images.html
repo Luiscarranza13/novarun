@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Export Character Images</title>
+    <style>
+      body { margin: 0; background: #fff; }
+      canvas { image-rendering: auto; }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import { SPRITE_MAP } from "../exports/teachable-machine/tmp/sprites.js";
+
+      const characters = Object.keys(SPRITE_MAP);
+      const states = ["idle", "walking", "jumping", "attacking", "special"];
+      const frames = [0, 12, 24, 36, 48, 60];
+      const size = 224;
+      const spriteSize = 160;
+      const results = [];
+
+      function drawVariant(character, state, frame, facingRight) {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, size, size);
+        ctx.imageSmoothingEnabled = true;
+        SPRITE_MAP[character](
+          ctx,
+          (size - spriteSize) / 2,
+          (size - spriteSize) / 2,
+          spriteSize,
+          spriteSize,
+          facingRight,
+          frame,
+          state,
+          false
+        );
+        return canvas.toDataURL("image/png");
+      }
+
+      for (const character of characters) {
+        for (const state of states) {
+          for (const frame of frames) {
+            for (const facingRight of [true, false]) {
+              const direction = facingRight ? "right" : "left";
+              results.push({
+                character,
+                fileName: `${character}_${state}_${direction}_${String(frame).padStart(2, "0")}.png`,
+                dataUrl: drawVariant(character, state, frame, facingRight),
+              });
+            }
+          }
+        }
+      }
+
+      window.__spriteExport = results;
+      document.title = "sprite-export-ready";
+    </script>
+  </body>
+</html>
