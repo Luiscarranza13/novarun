@@ -386,7 +386,11 @@ function VoiceSpecialButton({
     }
     setEnabled(false);
     setStatus("idle");
-    recognitionRef.current?.stop();
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // ignore
+    }
   }, []);
 
   const startListening = useCallback(() => {
@@ -398,42 +402,50 @@ function VoiceSpecialButton({
     }
 
     const recognition = new Recognition();
-    recognition.continuous = true;
+    // Use non-continuous for better command-based isolation in some browsers
+    recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = navigator.language?.toLowerCase().startsWith("es")
       ? navigator.language
       : "es-PE";
 
     recognition.onresult = (event) => {
-      let transcript = "";
+      const result = event.results[event.results.length - 1];
+      if (!result.isFinal) return;
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0]?.transcript ?? "";
-      }
-
+      const transcript = result[0].transcript;
       const now = Date.now();
-      if (now - lastTriggerRef.current < 700) return;
+      if (now - lastTriggerRef.current < 400) return;
 
-      const moveKey = getMovementVoiceKey(transcript);
+      const text = transcript.toLowerCase();
+      
+      const moveKey = getMovementVoiceKey(text);
       if (moveKey) {
         lastTriggerRef.current = now;
         setStatus("heard");
         onPress(moveKey);
-        window.setTimeout(() => onRelease(moveKey), moveKey === "ArrowUp" ? 120 : 350);
+        // ArrowUp is a pulse, ArrowLeft/Right are held briefly
+        const duration = moveKey === "ArrowUp" ? 250 : 600;
+        window.setTimeout(() => onRelease(moveKey), duration);
+        
         window.setTimeout(() => {
           if (enabledRef.current) setStatus("listening");
-        }, 450);
+        }, 700);
         return;
       }
 
-      if (isSpecialVoiceCommand(transcript)) {
+      if (isSpecialVoiceCommand(text)) {
         lastTriggerRef.current = now;
         setStatus("heard");
         onSpecial();
         window.setTimeout(() => {
           if (enabledRef.current) setStatus("listening");
-        }, 450);
+        }, 700);
       }
+    };
+
+    recognition.onstart = () => {
+      if (enabledRef.current) setStatus("listening");
     };
 
     recognition.onerror = (event) => {
@@ -443,24 +455,22 @@ function VoiceSpecialButton({
         setStatus("blocked");
         return;
       }
-
-      if (enabledRef.current) {
-        setStatus("listening");
-      }
+      // Other errors just reset to listening status
+      if (enabledRef.current) setStatus("listening");
     };
 
     recognition.onend = () => {
       if (!enabledRef.current) return;
 
+      // Auto-restart when in non-continuous mode
       restartTimerRef.current = window.setTimeout(() => {
         if (!enabledRef.current) return;
-
         try {
           recognition.start();
         } catch {
           setStatus("listening");
         }
-      }, 180);
+      }, 200);
     };
 
     recognitionRef.current = recognition;
@@ -473,14 +483,14 @@ function VoiceSpecialButton({
     } catch {
       setStatus("listening");
     }
-  }, [onSpecial]);
+  }, [onSpecial, onPress, onRelease]);
 
   useEffect(() => stopListening, [stopListening]);
 
   const label =
     status === "unsupported" ? "Voz no disponible" :
     status === "blocked" ? "Permite microfono" :
-    status === "heard" ? "Habilidad!" :
+    status === "heard" ? "¡Hecho!" :
     enabled ? "Voz activa" : "Voz";
 
   return (
@@ -488,7 +498,7 @@ function VoiceSpecialButton({
       type="button"
       onClick={enabled ? stopListening : startListening}
       className={`${styles.voiceBtn} ${enabled ? styles.voiceBtnActive : ""}`}
-      title="Activa el microfono y di: habilidad, especial o poder"
+      title="Activa el microfono y di comandos como: derecha, izquierda, salta o habilidad"
     >
       <span className={styles.voiceDot} />
       <span>{label}</span>
@@ -510,13 +520,19 @@ function getMovementVoiceKey(transcript: string): string | null {
   const text = normalizeVoiceText(transcript);
   if (!text) return null;
 
-  const left = ["izquierda", "mueve izquierda", "ve izquierda", "ir izquierda"];
-  const right = ["derecha", "mueve derecha", "ve derecha", "ir derecha"];
-  const jump = ["salto", "salta", "saltar", "arriba", "brinca"];
+  // Synonyms for movement
+  const left = ["izquierda", "izq", "atras", "retrocede", "mueve izquierda", "ve izquierda"];
+  const right = ["derecha", "der", "adelante", "avanza", "mueve derecha", "ve derecha"];
+  const jump = ["salto", "salta", "saltar", "arriba", "brinca", "sube"];
 
-  if (left.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text))) return "ArrowLeft";
-  if (right.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text))) return "ArrowRight";
-  if (jump.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text))) return "ArrowUp";
+  // Use word boundary check to avoid partial matches
+  const match = (list: string[]) => 
+    list.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text));
+
+  if (match(left)) return "ArrowLeft";
+  if (match(right)) return "ArrowRight";
+  if (match(jump)) return "ArrowUp";
+  
   return null;
 }
 
@@ -524,17 +540,19 @@ function isSpecialVoiceCommand(transcript: string) {
   const text = normalizeVoiceText(transcript);
   if (!text) return false;
 
-  return [
+  const specials = [
     "habilidad",
-    "habilidad especial",
     "especial",
     "poder",
     "super",
-    "ataque especial",
-    "usa habilidad",
-    "usar habilidad",
-    "activa habilidad",
+    "ataque",
+    "magia",
+    "fuego",
+    "trueno",
+    "activar",
     "activar habilidad",
     "lanza poder",
-  ].some((command) => new RegExp(`(^|\\s)${command}(\\s|$)`).test(text));
+  ];
+
+  return specials.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text));
 }
