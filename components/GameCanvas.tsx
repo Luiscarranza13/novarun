@@ -345,10 +345,18 @@ type SpeechRecognitionErrorEvent = Event & {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognition;
 
+type SpeechGrammarListConstructor = new () => SpeechGrammarList;
+
+type SpeechGrammarList = {
+  addFromString: (grammar: string, weight?: number) => void;
+};
+
 type SpeechRecognition = EventTarget & {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  grammars: SpeechGrammarList;
+  maxAlternatives: number;
   onresult: ((event: SpeechRecognitionResultEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
@@ -360,6 +368,8 @@ declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    SpeechGrammarList?: SpeechGrammarListConstructor;
+    webkitSpeechGrammarList?: SpeechGrammarListConstructor;
   }
 }
 
@@ -400,6 +410,7 @@ function VoiceSpecialButton({
 
   const startListening = useCallback(() => {
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    const GrammarList = window.SpeechGrammarList ?? window.webkitSpeechGrammarList;
 
     if (!Recognition) {
       setStatus("unsupported");
@@ -407,43 +418,49 @@ function VoiceSpecialButton({
     }
 
     const recognition = new Recognition();
+    
+    // Bias recognition with a custom grammar list
+    if (GrammarList) {
+      const grammar = "#JSGF V1.0; grammar commands; public <command> = uno | dos | tres | cuatro | 1 | 2 | 3 | 4 | izquierda | derecha | salta | saltar | habilidad | especial | poder | ataque | fuego | trueno | magia | arriba | sube | avanza | retrocede ;";
+      const speechRecognitionList = new GrammarList();
+      speechRecognitionList.addFromString(grammar, 1);
+      recognition.grammars = speechRecognitionList;
+    }
+
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "es-ES"; // Force Spanish for consistency
+    recognition.maxAlternatives = 1;
+    recognition.lang = "es-ES";
 
     recognition.onresult = (event) => {
       const now = Date.now();
       
-      // Process all results from the current event
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0].transcript.toLowerCase().trim();
         
         if (!transcript) continue;
         
-        // Debug log for the user to see in browser console
-        console.log(`[Voz] He oido: "${transcript}" (Confianza: ${result[0].confidence.toFixed(2)})`);
+        console.log(`[Voz] Detectado: "${transcript}" (Confianza: ${result[0].confidence.toFixed(2)})`);
 
-        // If we already triggered for this index and it's not final, skip
-        // This allows triggering on interim results but only once per "phrase"
         if (i <= lastIndexRef.current && !result.isFinal) continue;
 
         const moveKey = getMovementVoiceKey(transcript);
         const special = isSpecialVoiceCommand(transcript);
 
         if (moveKey || special) {
-          // Debounce to prevent rapid fire of the SAME command
-          if (now - lastTriggerRef.current < 450) continue;
+          if (now - lastTriggerRef.current < 400) continue;
 
           lastTriggerRef.current = now;
           lastIndexRef.current = i;
           
-          setHeard(transcript.split(" ").pop() || transcript);
+          const word = transcript.split(" ").pop() || transcript;
+          setHeard(word.substring(0, 10));
           setStatus("heard");
 
           if (moveKey) {
             onPress(moveKey);
-            const duration = moveKey === "ArrowUp" ? 250 : 700;
+            const duration = moveKey === "ArrowUp" ? 250 : 800;
             window.setTimeout(() => onRelease(moveKey), duration);
           } else {
             onSpecial();
@@ -454,9 +471,8 @@ function VoiceSpecialButton({
               setStatus("listening");
               setHeard("");
             }
-          }, 800);
+          }, 900);
           
-          // If we found a command in this result, we stop looking at this index
           break; 
         }
       }
