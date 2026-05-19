@@ -5,6 +5,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+  user-select: none;
 }
 
 .canvas {
@@ -124,4 +126,97 @@
 .voiceBtnActive .voiceDot {
   background: #44aaff;
   box-shadow: 0 0 8px rgba(68, 170, 255, 0.95);
+}
+
+.mobileControls {
+  display: none;
+}
+
+.movePad {
+  display: flex;
+  gap: 10px;
+}
+
+.mobileControlBtn {
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.52);
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobileControlBtn:active {
+  background: rgba(255, 215, 0, 0.34);
+  border-color: rgba(255, 215, 0, 0.78);
+  transform: translateY(1px);
+}
+
+.jumpBtn {
+  width: 64px;
+  height: 64px;
+  border-color: rgba(68, 170, 255, 0.42);
+  background: rgba(14, 62, 100, 0.68);
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 760px) {
+  .mobileControls {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 12px;
+    z-index: 26;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .muteBtn {
+    right: 10px;
+    top: 10px;
+    bottom: auto;
+  }
+
+  .voiceBtn {
+    right: 50px;
+    top: 10px;
+    bottom: auto;
+    min-width: 94px;
+    height: 32px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 520px) {
+  .mobileControls {
+    left: 10px;
+    right: 10px;
+    bottom: 8px;
+  }
+
+  .movePad {
+    gap: 8px;
+  }
+
+  .mobileControlBtn {
+    width: 46px;
+    height: 46px;
+    font-size: 22px;
+  }
+
+  .jumpBtn {
+    width: 54px;
+    height: 54px;
+  }
 }

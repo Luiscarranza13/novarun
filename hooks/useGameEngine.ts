@@ -70,6 +70,14 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
     engine.triggerSpecial();
   }, []);
 
+  const pressControl = useCallback((key: string) => {
+    engineRef.current?.handleKeyDown(key);
+  }, []);
+
+  const releaseControl = useCallback((key: string) => {
+    engineRef.current?.handleKeyUp(key);
+  }, []);
+
   // Stop the engine loop before navigating away from an active game
   const goToMenu = useCallback(() => {
     stopEngine(engineRef.current);
@@ -81,5 +89,14 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
     setGameState("character-select");
   }, []);
 
-  return { gameState, hud, startGame, triggerSpecial, goToMenu, goToCharacterSelect };
+  return {
+    gameState,
+    hud,
+    startGame,
+    triggerSpecial,
+    pressControl,
+    releaseControl,
+    goToMenu,
+    goToCharacterSelect,
+  };
 }

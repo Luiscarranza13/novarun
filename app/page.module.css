@@ -23,7 +23,8 @@
 
 .frame {
   position: relative;
-  width: min(98vw, calc(94svh * 1.6667));
+  width: min(98vw, calc((100svh - 40px) * 1.6667));
+  max-height: calc(100svh - 40px);
   aspect-ratio: 5 / 3;
   padding: 1px;
   background: rgba(255, 255, 255, 0.1);
@@ -77,15 +78,41 @@
 }
 
 @media (max-width: 600px) {
+  .main {
+    padding: 8px;
+  }
+
+  .frame {
+    width: calc(100vw - 16px);
+    max-height: calc(100svh - 16px);
+    border-radius: 18px;
+  }
+
+  .inner {
+    border-radius: 17px;
+  }
+
   .footer {
-    bottom: 12px;
+    display: none;
   }
-  .footerContent {
-    flex-direction: column;
-    gap: 4px;
-    font-size: 9px;
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .main {
+    padding: 6px;
   }
-  .separator {
+
+  .frame {
+    width: min(calc(100vw - 12px), calc((100svh - 12px) * 1.6667));
+    max-height: calc(100svh - 12px);
+    border-radius: 16px;
+  }
+
+  .inner {
+    border-radius: 15px;
+  }
+
+  .footer {
     display: none;
   }
 }

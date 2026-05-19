@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import type { PointerEvent } from "react";
 import { useGameEngine } from "@/hooks/useGameEngine";
 import { CreatureData } from "@/types/game";
 import { LEVELS } from "@/game/data/levels";
@@ -21,7 +22,16 @@ export default function GameCanvas() {
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const menuAudioRef = useRef<HTMLAudioElement>(null);
   const gameAudioRef = useRef<HTMLAudioElement>(null);
-  const { gameState, hud, startGame, triggerSpecial, goToMenu, goToCharacterSelect } =
+  const {
+    gameState,
+    hud,
+    startGame,
+    triggerSpecial,
+    pressControl,
+    releaseControl,
+    goToMenu,
+    goToCharacterSelect,
+  } =
     useGameEngine(canvasRef);
 
   const [showHow,      setShowHow]      = useState(false);
@@ -235,6 +245,9 @@ export default function GameCanvas() {
       {/* Mute button while playing */}
       {isInGame && <MuteButton muted={gameMusicMuted} onToggle={toggleGameAudio} />}
       {gameState === "playing" && <VoiceSpecialButton onSpecial={triggerSpecial} />}
+      {gameState === "playing" && (
+        <MobileControls onPress={pressControl} onRelease={releaseControl} />
+      )}
     </div>
   );
 }
@@ -251,6 +264,66 @@ function MuteButton({ muted, onToggle }: { muted: boolean; onToggle: () => void 
     >
       {muted ? "🔇" : "🔊"}
     </button>
+  );
+}
+
+function MobileControls({
+  onPress,
+  onRelease,
+}: {
+  onPress: (key: string) => void;
+  onRelease: (key: string) => void;
+}) {
+  const bindControl = (key: string) => ({
+    onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      onPress(key);
+    },
+    onPointerUp: (event: PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.currentTarget.releasePointerCapture(event.pointerId);
+      onRelease(key);
+    },
+    onPointerCancel: (event: PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      onRelease(key);
+    },
+    onPointerLeave: (event: PointerEvent<HTMLButtonElement>) => {
+      if (event.buttons === 0) return;
+      onRelease(key);
+    },
+  });
+
+  return (
+    <div className={styles.mobileControls} aria-label="Controles moviles">
+      <div className={styles.movePad}>
+        <button
+          type="button"
+          className={styles.mobileControlBtn}
+          aria-label="Mover izquierda"
+          {...bindControl("ArrowLeft")}
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          className={styles.mobileControlBtn}
+          aria-label="Mover derecha"
+          {...bindControl("ArrowRight")}
+        >
+          →
+        </button>
+      </div>
+      <button
+        type="button"
+        className={`${styles.mobileControlBtn} ${styles.jumpBtn}`}
+        aria-label="Saltar"
+        {...bindControl("ArrowUp")}
+      >
+        ↑
+      </button>
+    </div>
   );
 }
 
