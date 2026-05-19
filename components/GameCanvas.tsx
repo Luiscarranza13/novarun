@@ -7,6 +7,7 @@ import { CreatureData } from "@/types/game";
 import { LEVELS } from "@/game/data/levels";
 import { sfx } from "@/game/SoundEngine";
 
+import { normalizeVoiceText, getMovementVoiceKey, isSpecialVoiceCommand } from "@/game/voiceUtils";
 import StartScreen     from "./StartScreen";
 import CharacterSelect from "./CharacterSelect";
 import HUD             from "./HUD";
@@ -419,6 +420,9 @@ function VoiceSpecialButton({
         const transcript = result[0].transcript.toLowerCase().trim();
         
         if (!transcript) continue;
+        
+        // Debug log for the user to see in browser console
+        console.log(`[Voz] He oido: "${transcript}" (Confianza: ${result[0].confidence.toFixed(2)})`);
 
         // If we already triggered for this index and it's not final, skip
         // This allows triggering on interim results but only once per "phrase"
@@ -519,7 +523,7 @@ function VoiceSpecialButton({
   );
 }
 
-function normalizeVoiceText(value: string) {
+function normalizeVoiceTextLocal(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -529,32 +533,3 @@ function normalizeVoiceText(value: string) {
     .trim();
 }
 
-function getMovementVoiceKey(transcript: string): string | null {
-  const text = normalizeVoiceText(transcript);
-  if (!text) return null;
-
-  const left = ["izquierda", "izq", "atras", "retrocede", "mueve izquierda", "ir izquierda"];
-  const right = ["derecha", "der", "adelante", "avanza", "mueve derecha", "ir derecha"];
-  const jump = ["salto", "salta", "saltar", "arriba", "brinca", "sube", "alto"];
-
-  const match = (list: string[]) => 
-    list.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text));
-
-  if (match(left)) return "ArrowLeft";
-  if (match(right)) return "ArrowRight";
-  if (match(jump)) return "ArrowUp";
-  
-  return null;
-}
-
-function isSpecialVoiceCommand(transcript: string) {
-  const text = normalizeVoiceText(transcript);
-  if (!text) return false;
-
-  const specials = [
-    "habilidad", "especial", "poder", "super", "ataque", "magia", 
-    "fuego", "trueno", "activar", "lanza", "usar"
-  ];
-
-  return specials.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text));
-}

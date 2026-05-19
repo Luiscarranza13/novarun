@@ -1,61 +1,39 @@
-# Comandos de voz para la habilidad
+# Comandos de Voz (Novarun)
 
-La voz solo funciona durante la partida, cuando aparece el boton `Voz`.
+Los comandos de voz están optimizados para **español (es-ES / es-MX)**. El sistema reconoce palabras naturales y frases cortas.
 
-## Como probar
+## Cómo activarlo
+1. Inicia una partida con cualquier personaje.
+2. Haz clic en el botón **"Voz"** (abajo a la derecha).
+3. Cuando el botón diga **"Voz activa"**, ya puedes hablar.
 
-1. Entra al juego y elige un personaje.
-2. Haz clic en el boton `Voz`.
-3. Acepta el permiso del microfono en el navegador.
-4. Cuando el boton diga `Voz activa`, di uno de estos comandos:
+## Comandos de Movimiento
 
-## Comandos de movimiento
+| Acción | Comando (Número) | Comandos (Palabras) |
+| :--- | :--- | :--- |
+| **Saltar** | **"1"** o "uno" | "salta", "arriba", "sube" |
+| **Izquierda** | **"2"** o "dos" | "izquierda", "atrás", "retrocede" |
+| **Derecha** | **"3"** o "tres" | "derecha", "adelante", "avanza" |
+| **Poder Especial** | **"4"** o "cuatro" | "poder", "habilidad", "ataque" |
 
-### Mover izquierda
-- `izquierda`
-- `mueve izquierda`
-- `ve izquierda`
-- `ir izquierda`
 
-### Mover derecha
-- `derecha`
-- `mueve derecha`
-- `ve derecha`
-- `ir derecha`
+## Comandos de Habilidad Especial
+Puedes usar cualquiera de estas palabras para activar tu poder:
+- "habilidad"
+- "especial"
+- "poder"
+- "super"
+- "ataque"
+- "magia"
+- "activar"
+- "lanza"
+- "fuego" / "trueno" (según el personaje)
 
-### Saltar
-- `salto`
-- `salta`
-- `saltar`
-- `arriba`
-- `brinca`
+## Consejos para que funcione bien
+- **Habla claro:** No hace falta gritar, pero intenta vocalizar bien.
+- **Espera al botón:** El sistema reacciona instantáneamente, verás la palabra que dijiste escrita en el botón como confirmación.
+- **Ruido de fondo:** El sistema intenta filtrar el ruido, pero funciona mejor en ambientes silenciosos.
+- **Navegador:** Usa **Google Chrome** o **Microsoft Edge** para la mejor experiencia de reconocimiento.
 
-## Comandos de habilidad especial
-
-- `habilidad`
-- `habilidad especial`
-- `especial`
-- `poder`
-- `super`
-- `ataque especial`
-- `usa habilidad`
-- `usar habilidad`
-- `activa habilidad`
-- `activar habilidad`
-- `lanza poder`
-
-## Como saber si funciono
-
-- **Movimiento**: el personaje se mueve en la direccion indicada (~350ms) o salta.
-- **Habilidad**: el boton cambia por un momento a `Habilidad!` y la barra de energia baja 30 puntos.
-
-## Si no funciona
-
-- Usa Google Chrome o Microsoft Edge.
-- Permite el microfono cuando el navegador lo pida.
-- Revisa que el boton diga `Voz activa`.
-- Habla claro y cerca del microfono.
-- Si sale `Permite microfono`, revisa los permisos del sitio en el navegador.
-- Si sale `Voz no disponible`, el navegador no soporta reconocimiento de voz.
-
-Tambien puedes usar la tecla `K` para confirmar que la habilidad funciona sin voz.
+---
+*Nota: Si el sistema no te entiende, puedes abrir la consola del navegador (F12) para ver exactamente qué palabra está detectando el micrófono.*
