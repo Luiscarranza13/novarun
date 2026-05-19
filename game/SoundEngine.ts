@@ -276,63 +276,63 @@ export class SoundEngine {
   // ── Sound effects ───────────────────────────────────────────────────────────
 
   jump() {
-    this.tone(260, 0.04, "square", 0.16, 0, 520, 0.003);
-    this.tone(390, 0.05, "square", 0.08, 0.02, 650, 0.003);
+    this.tone(260, 0.04, "triangle", 0.14, 0, 520, 0.003);
+    this.tone(390, 0.05, "sine", 0.06, 0.02, 650, 0.003);
   }
 
   doublejump() {
-    this.tone(520, 0.04, "sine", 0.14, 0,    780);
-    this.tone(780, 0.04, "sine", 0.12, 0.05, 1040);
-    this.tone(1040,0.06, "sine", 0.08, 0.10, 1560);
+    this.tone(520, 0.04, "sine", 0.12, 0,    780);
+    this.tone(780, 0.04, "sine", 0.10, 0.05, 1040);
+    this.tone(1040,0.06, "sine", 0.06, 0.10, 1560);
   }
 
   land() {
-    this.tone(110, 0.035, "triangle", 0.07, 0, 80, 0.004);
+    this.tone(110, 0.035, "triangle", 0.05, 0, 80, 0.004);
   }
 
   coin() {
     // Rising Pokéball 3-note arpeggio: C–E–G
-    this.tone(C5, 0.07, "sine", 0.20, 0);
-    this.tone(E5, 0.07, "sine", 0.18, 0.07);
-    this.tone(G5, 0.12, "sine", 0.16, 0.14);
+    this.tone(C5, 0.07, "sine", 0.16, 0);
+    this.tone(E5, 0.07, "sine", 0.14, 0.07);
+    this.tone(G5, 0.12, "sine", 0.12, 0.14);
     // Tiny sparkle on top
-    this.tone(C6, 0.06, "sine", 0.10, 0.21);
+    this.tone(C6, 0.06, "sine", 0.08, 0.21);
   }
 
   heart() {
     // Gentle ascending potion sparkle
-    this.tone(E5,  0.07, "sine", 0.15, 0);
-    this.tone(G5,  0.07, "sine", 0.14, 0.07);
-    this.tone(B5,  0.07, "sine", 0.13, 0.14);
-    this.tone(E6,  0.14, "sine", 0.11, 0.21);
+    this.tone(E5,  0.07, "sine", 0.12, 0);
+    this.tone(G5,  0.07, "sine", 0.10, 0.07);
+    this.tone(B5,  0.07, "sine", 0.09, 0.14);
+    this.tone(E6,  0.14, "sine", 0.08, 0.21);
     // Soft shimmer
-    this.tone(G6,  0.10, "sine", 0.06, 0.30);
+    this.tone(G6,  0.10, "sine", 0.05, 0.30);
   }
 
   attack() {
-    this.tone(220, 0.045, "triangle", 0.09, 0, 140, 0.004);
+    this.tone(220, 0.045, "triangle", 0.07, 0, 140, 0.004);
   }
 
   special() {
     // Sparkly ascending charge
-    this.tone(D5,  0.05, "sine", 0.15, 0);
-    this.tone(Fs5, 0.05, "sine", 0.14, 0.05);
-    this.tone(A5,  0.05, "sine", 0.13, 0.10);
-    this.tone(D6,  0.05, "sine", 0.12, 0.15);
-    this.tone(A5,  0.08, "sine", 0.10, 0.20);
-    this.tone(D6,  0.12, "sine", 0.10, 0.25);
+    this.tone(D5,  0.05, "sine", 0.12, 0);
+    this.tone(Fs5, 0.05, "sine", 0.11, 0.05);
+    this.tone(A5,  0.05, "sine", 0.10, 0.10);
+    this.tone(D6,  0.05, "sine", 0.09, 0.15);
+    this.tone(A5,  0.08, "sine", 0.08, 0.20);
+    this.tone(D6,  0.12, "sine", 0.08, 0.25);
   }
 
   damage() {
-    this.tone(180, 0.05, "triangle", 0.08, 0, 120, 0.004);
-    this.tone(120, 0.07, "sine", 0.06, 0.035, 80, 0.004);
+    this.tone(180, 0.05, "triangle", 0.06, 0, 120, 0.004);
+    this.tone(120, 0.07, "sine", 0.04, 0.035, 80, 0.004);
   }
 
   stomp() {
-    this.tone(220, 0.04, "triangle", 0.09, 0, 130, 0.004);
-    this.tone(110, 0.05, "sine", 0.06, 0.03, 70,  0.004);
+    this.tone(220, 0.04, "triangle", 0.07, 0, 130, 0.004);
+    this.tone(110, 0.05, "sine", 0.04, 0.03, 70,  0.004);
     // Cute bounce squeak
-    this.tone(660, 0.05, "sine",   0.10, 0.06, 880);
+    this.tone(660, 0.05, "sine",   0.08, 0.06, 880);
   }
 
   victory() {
@@ -341,16 +341,16 @@ export class SoundEngine {
       [G4,0.08],[A4,0.08],[B4,0.08],[C5,0.08],[D5,0.08],[E5,0.08],[Fs5,0.08],[G5,0.14],
       [B5,0.08],[D6,0.08],[G6,0.25],
     ];
-    mel.forEach(([f, d], i) => this.tone(f, d, "square", 0.16, i * 0.085));
+    mel.forEach(([f, d], i) => this.tone(f, d, "triangle", 0.12, i * 0.085));
     // Harmony
     const har: [number, number][] = [
       [B3,0.08],[C4,0.08],[D4,0.08],[E4,0.08],[G4,0.08],[A4,0.08],[C5,0.08],[B4,0.14],
     ];
-    har.forEach(([f, d], i) => this.tone(f, d, "square", 0.08, i * 0.085 + 0.01));
+    har.forEach(([f, d], i) => this.tone(f, d, "sine", 0.06, i * 0.085 + 0.01));
     // Final chord
-    this.tone(G5, 0.55, "sine", 0.12, 0.95);
-    this.tone(B5, 0.55, "sine", 0.10, 0.95);
-    this.tone(D6, 0.55, "sine", 0.08, 0.95);
+    this.tone(G5, 0.55, "sine", 0.10, 0.95);
+    this.tone(B5, 0.55, "sine", 0.08, 0.95);
+    this.tone(D6, 0.55, "sine", 0.06, 0.95);
   }
 
   gameover() {
@@ -361,8 +361,8 @@ export class SoundEngine {
       [A3,0.50],
     ];
     mel.forEach(([f, d], i) => {
-      this.tone(f, d, "triangle", 0.14, i * 0.185);
-      this.tone(f / 2, d, "sine", 0.06, i * 0.185 + 0.01);
+      this.tone(f, d, "triangle", 0.12, i * 0.185);
+      this.tone(f / 2, d, "sine", 0.04, i * 0.185 + 0.01);
     });
   }
 
@@ -375,20 +375,20 @@ export class SoundEngine {
 
     let melNotes: N2[], bassNotes: N2[], harmNotes: N2[] | null = null;
     let melWave: OscillatorType, bassWave: OscillatorType, harmWave: OscillatorType = "triangle";
-    let melVol: number, bassVol: number, harmVol = 0.18;
+    let melVol: number, bassVol: number, harmVol = 0.15;
 
     if (levelId === 1) {
-      melNotes  = BGM1_MELODY; melWave  = "square";   melVol   = 0.30;
-      harmNotes = BGM1_HARM;   harmWave = "triangle"; harmVol  = 0.18;
-      bassNotes = BGM1_BASS;   bassWave = "triangle"; bassVol  = 0.40;
+      melNotes  = BGM1_MELODY; melWave  = "triangle";   melVol   = 0.22;
+      harmNotes = BGM1_HARM;   harmWave = "sine";     harmVol  = 0.12;
+      bassNotes = BGM1_BASS;   bassWave = "triangle"; bassVol  = 0.30;
     } else if (levelId === 2) {
-      melNotes  = BGM2_MELODY; melWave  = "sine";     melVol   = 0.28;
+      melNotes  = BGM2_MELODY; melWave  = "sine";     melVol   = 0.22;
       harmNotes = null;
-      bassNotes = BGM2_BASS;   bassWave = "sine";     bassVol  = 0.35;
+      bassNotes = BGM2_BASS;   bassWave = "sine";     bassVol  = 0.28;
     } else {
-      melNotes  = BGM3_MELODY; melWave  = "sine";     melVol   = 0.25;
+      melNotes  = BGM3_MELODY; melWave  = "sine";     melVol   = 0.18;
       harmNotes = null;
-      bassNotes = BGM3_BASS;   bassWave = "triangle"; bassVol  = 0.32;
+      bassNotes = BGM3_BASS;   bassWave = "triangle"; bassVol  = 0.25;
     }
 
     const mel  = new MusicTrack(c, this.musicBus, melNotes!,  melWave,  melVol);

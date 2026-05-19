@@ -67,8 +67,7 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
     const engine = engineRef.current;
     if (!engine) return;
 
-    engine.handleKeyDown("k");
-    engine.handleKeyUp("k");
+    engine.triggerSpecial();
   }, []);
 
   // Stop the engine loop before navigating away from an active game

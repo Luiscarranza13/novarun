@@ -160,6 +160,10 @@ export class GameEngine {
 
   handleKeyUp(key: string) { this.heldKeys.delete(key); }
 
+  triggerSpecial() {
+    this.pulseSpecial = true;
+  }
+
   // FIX: stop() halts the RAF loop — called by useGameEngine before navigating away
   stop() {
     this.halted = true;
@@ -501,7 +505,7 @@ export class GameEngine {
     if (!level || !p) return;
 
     // FIX: snap camera to whole pixels for rendering — prevents sub-pixel jitter on sprites
-    const camX = Math.round(this.cameraX);
+    const camX = Math.floor(this.cameraX);
 
     ctx.save();
     this.renderBackground(ctx, W, H, level);
@@ -524,7 +528,7 @@ export class GameEngine {
       }
     }
 
-    // Entities
+    // Entities - Use integer coordinates relative to camera
     for (const col of this.collectibles) if (!col.collected) col.draw(ctx, camX);
     for (const e of this.enemies)        e.draw(ctx, camX);
     for (const proj of this.projectiles) if (proj.active) proj.draw(ctx, camX);

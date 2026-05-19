@@ -287,11 +287,16 @@ function VoiceSpecialButton({ onSpecial }: { onSpecial: () => void }) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const enabledRef = useRef(false);
   const lastTriggerRef = useRef(0);
+  const restartTimerRef = useRef<number | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [status, setStatus] = useState<"idle" | "listening" | "heard" | "unsupported" | "blocked">("idle");
 
   const stopListening = useCallback(() => {
     enabledRef.current = false;
+    if (restartTimerRef.current !== null) {
+      window.clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     setEnabled(false);
     setStatus("idle");
     recognitionRef.current?.stop();
@@ -308,7 +313,9 @@ function VoiceSpecialButton({ onSpecial }: { onSpecial: () => void }) {
     const recognition = new Recognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "es-PE";
+    recognition.lang = navigator.language?.toLowerCase().startsWith("es")
+      ? navigator.language
+      : "es-PE";
 
     recognition.onresult = (event) => {
       let transcript = "";
@@ -317,10 +324,10 @@ function VoiceSpecialButton({ onSpecial }: { onSpecial: () => void }) {
         transcript += event.results[i][0]?.transcript ?? "";
       }
 
-      const commandHeard = /\b(habilidad|especial|poder|super|ataque especial)\b/i.test(transcript);
+      const commandHeard = isSpecialVoiceCommand(transcript);
       const now = Date.now();
 
-      if (commandHeard && now - lastTriggerRef.current > 900) {
+      if (commandHeard && now - lastTriggerRef.current > 1200) {
         lastTriggerRef.current = now;
         setStatus("heard");
         onSpecial();
@@ -335,17 +342,26 @@ function VoiceSpecialButton({ onSpecial }: { onSpecial: () => void }) {
         enabledRef.current = false;
         setEnabled(false);
         setStatus("blocked");
+        return;
+      }
+
+      if (enabledRef.current) {
+        setStatus("listening");
       }
     };
 
     recognition.onend = () => {
       if (!enabledRef.current) return;
 
-      try {
-        recognition.start();
-      } catch {
-        setStatus("listening");
-      }
+      restartTimerRef.current = window.setTimeout(() => {
+        if (!enabledRef.current) return;
+
+        try {
+          recognition.start();
+        } catch {
+          setStatus("listening");
+        }
+      }, 180);
     };
 
     recognitionRef.current = recognition;
@@ -379,4 +395,33 @@ function VoiceSpecialButton({ onSpecial }: { onSpecial: () => void }) {
       <span>{label}</span>
     </button>
   );
+}
+
+function normalizeVoiceText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSpecialVoiceCommand(transcript: string) {
+  const text = normalizeVoiceText(transcript);
+  if (!text) return false;
+
+  return [
+    "habilidad",
+    "habilidad especial",
+    "especial",
+    "poder",
+    "super",
+    "ataque especial",
+    "usa habilidad",
+    "usar habilidad",
+    "activa habilidad",
+    "activar habilidad",
+    "lanza poder",
+  ].some((command) => new RegExp(`(^|\\s)${command}(\\s|$)`).test(text));
 }
