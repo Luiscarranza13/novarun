@@ -244,7 +244,13 @@ export default function GameCanvas() {
 
       {/* Mute button while playing */}
       {isInGame && <MuteButton muted={gameMusicMuted} onToggle={toggleGameAudio} />}
-      {gameState === "playing" && <VoiceSpecialButton onSpecial={triggerSpecial} />}
+      {gameState === "playing" && (
+        <VoiceSpecialButton
+          onSpecial={triggerSpecial}
+          onPress={pressControl}
+          onRelease={releaseControl}
+        />
+      )}
       {gameState === "playing" && (
         <MobileControls onPress={pressControl} onRelease={releaseControl} />
       )}
@@ -356,7 +362,15 @@ declare global {
   }
 }
 
-function VoiceSpecialButton({ onSpecial }: { onSpecial: () => void }) {
+function VoiceSpecialButton({
+  onSpecial,
+  onPress,
+  onRelease,
+}: {
+  onSpecial: () => void;
+  onPress: (key: string) => void;
+  onRelease: (key: string) => void;
+}) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const enabledRef = useRef(false);
   const lastTriggerRef = useRef(0);
@@ -397,10 +411,22 @@ function VoiceSpecialButton({ onSpecial }: { onSpecial: () => void }) {
         transcript += event.results[i][0]?.transcript ?? "";
       }
 
-      const commandHeard = isSpecialVoiceCommand(transcript);
       const now = Date.now();
+      if (now - lastTriggerRef.current < 700) return;
 
-      if (commandHeard && now - lastTriggerRef.current > 1200) {
+      const moveKey = getMovementVoiceKey(transcript);
+      if (moveKey) {
+        lastTriggerRef.current = now;
+        setStatus("heard");
+        onPress(moveKey);
+        window.setTimeout(() => onRelease(moveKey), moveKey === "ArrowUp" ? 120 : 350);
+        window.setTimeout(() => {
+          if (enabledRef.current) setStatus("listening");
+        }, 450);
+        return;
+      }
+
+      if (isSpecialVoiceCommand(transcript)) {
         lastTriggerRef.current = now;
         setStatus("heard");
         onSpecial();
@@ -478,6 +504,20 @@ function normalizeVoiceText(value: string) {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function getMovementVoiceKey(transcript: string): string | null {
+  const text = normalizeVoiceText(transcript);
+  if (!text) return null;
+
+  const left = ["izquierda", "mueve izquierda", "ve izquierda", "ir izquierda"];
+  const right = ["derecha", "mueve derecha", "ve derecha", "ir derecha"];
+  const jump = ["salto", "salta", "saltar", "arriba", "brinca"];
+
+  if (left.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text))) return "ArrowLeft";
+  if (right.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text))) return "ArrowRight";
+  if (jump.some((c) => new RegExp(`(^|\\s)${c}(\\s|$)`).test(text))) return "ArrowUp";
+  return null;
 }
 
 function isSpecialVoiceCommand(transcript: string) {

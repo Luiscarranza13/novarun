@@ -9,7 +9,28 @@ La voz solo funciona durante la partida, cuando aparece el boton `Voz`.
 3. Acepta el permiso del microfono en el navegador.
 4. Cuando el boton diga `Voz activa`, di uno de estos comandos:
 
-## Comandos aceptados
+## Comandos de movimiento
+
+### Mover izquierda
+- `izquierda`
+- `mueve izquierda`
+- `ve izquierda`
+- `ir izquierda`
+
+### Mover derecha
+- `derecha`
+- `mueve derecha`
+- `ve derecha`
+- `ir derecha`
+
+### Saltar
+- `salto`
+- `salta`
+- `saltar`
+- `arriba`
+- `brinca`
+
+## Comandos de habilidad especial
 
 - `habilidad`
 - `habilidad especial`
@@ -25,9 +46,8 @@ La voz solo funciona durante la partida, cuando aparece el boton `Voz`.
 
 ## Como saber si funciono
 
-- El boton cambia por un momento a `Habilidad!`.
-- La barra de energia baja 30 puntos.
-- El personaje usa su habilidad especial.
+- **Movimiento**: el personaje se mueve en la direccion indicada (~350ms) o salta.
+- **Habilidad**: el boton cambia por un momento a `Habilidad!` y la barra de energia baja 30 puntos.
 
 ## Si no funciona
 
