@@ -196,6 +196,8 @@ export class SoundEngine {
   private sfxBus:     GainNode    | null = null;
   private musicBus:   GainNode    | null = null;
   private tracks:     MusicTrack[]       = [];
+  private sfxVolume = 1;
+  private pikachuAudio: HTMLAudioElement | null = null;
   muted = false;
 
   // ── Audio context ───────────────────────────────────────────────────────────
@@ -323,6 +325,23 @@ export class SoundEngine {
     this.tone(D6,  0.12, "sine", 0.08, 0.25);
   }
 
+  pikachuThunderbolt() {
+    this.special();
+    if (this.muted || typeof Audio === "undefined") return;
+    try {
+      if (!this.pikachuAudio) {
+        this.pikachuAudio = new Audio("/audio/Pikachu Used Thunderbolt!!!.mp3");
+        this.pikachuAudio.preload = "auto";
+      }
+      this.pikachuAudio.pause();
+      this.pikachuAudio.currentTime = 0;
+      this.pikachuAudio.volume = Math.min(1, this.sfxVolume * 0.9);
+      this.pikachuAudio.play().catch(() => {});
+    } catch {
+      // Fall back to the procedural special sound when the browser blocks media.
+    }
+  }
+
   damage() {
     this.tone(180, 0.05, "triangle", 0.06, 0, 120, 0.004);
     this.tone(120, 0.07, "sine", 0.04, 0.035, 80, 0.004);
@@ -423,6 +442,8 @@ export class SoundEngine {
   }
 
   setSfxVolume(v: number) {
+    this.sfxVolume = v;
+    if (this.pikachuAudio) this.pikachuAudio.volume = Math.min(1, v * 0.9);
     if (!this.sfxBus || !this.ctx) return;
     this.sfxBus.gain.setTargetAtTime(v * 0.22, this.ctx.currentTime, 0.06);
   }

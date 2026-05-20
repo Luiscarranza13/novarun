@@ -12,6 +12,22 @@ export interface Rect {
   height: number;
 }
 
+// ─── Difficulty ───────────────────────────────────────────────────────────────
+
+export type Difficulty = "easy" | "normal" | "hard";
+
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+export type AchievementId =
+  | "first_kill"
+  | "speed_run"
+  | "untouchable"
+  | "collector"
+  | "star_power"
+  | "used_special"
+  | "boss_slayer"
+  | "completionist";
+
 // ─── Game state machine ───────────────────────────────────────────────────────
 
 export type GameState =
@@ -98,6 +114,7 @@ export interface LevelData {
   heartTiles: Vec2[];
   starTiles?: Vec2[];
   speedTiles?: Vec2[];
+  bossSpawn?: { tileX: number; tileY: number };
   goalTile: Vec2;
   playerStartTile: Vec2;
   bgTop: string;
@@ -119,4 +136,5 @@ export interface HUDState {
   creatureName: string;
   element: ElementType;
   colors: CreatureColors;
+  boss?: { hp: number; maxHp: number; phase: number } | null;
 }

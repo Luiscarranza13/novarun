@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GameEngine } from "@/game/GameEngine";
-import { CreatureData, GameState, HUDState, LevelStats } from "@/types/game";
+import { AchievementId, CreatureData, Difficulty, GameState, HUDState, LevelStats } from "@/types/game";
 
 const DEFAULT_HUD: HUDState = {
   hp: 100, maxHp: 100, energy: 100, maxEnergy: 100, score: 0, level: 1,
   creatureName: "", element: "fire",
   colors: { primary: "#FF4500", secondary: "#FF8C00", accent: "#FFD700" },
+  boss: null,
 };
 
 function stopEngine(engine: GameEngine | null) {
@@ -20,7 +21,10 @@ function stopEngine(engine: GameEngine | null) {
   }
 }
 
-export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
+export function useGameEngine(
+  canvasRef: React.RefObject<HTMLCanvasElement>,
+  onAchievement?: (id: AchievementId) => void
+) {
   const engineRef  = useRef<GameEngine | null>(null);
   const [gameState, setGameState] = useState<GameState>("menu");
   const [hud,       setHud]       = useState<HUDState>(DEFAULT_HUD);
@@ -34,6 +38,7 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
       onStateChange:  (state) => setGameState(state),
       onHUDUpdate:    (h)     => setHud(h),
       onStatsReady:   (stats) => setLevelStats(stats),
+      onAchievement,
     });
     engineRef.current = engine;
 
@@ -41,11 +46,9 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
       if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))
         e.preventDefault();
 
-      // Escape toggles pause while playing or resumes while paused
       if (e.key === "Escape") {
         const eng = engineRef.current;
         if (!eng) return;
-        // Access gameState via ref pattern via setGameState callback trick
         setGameState((prev) => {
           if (prev === "playing") { eng.pause(); return prev; }
           if (prev === "paused")  { eng.resume(); return prev; }
@@ -67,12 +70,12 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup",   onKeyUp);
     };
-  }, [canvasRef]);
+  }, [canvasRef, onAchievement]);
 
-  const startGame = useCallback((creature: CreatureData, levelIndex = 0) => {
+  const startGame = useCallback((creature: CreatureData, levelIndex = 0, difficulty: Difficulty = "normal") => {
     setGameState("playing");
     setLevelStats(null);
-    engineRef.current?.startLevel(creature, levelIndex);
+    engineRef.current?.startLevel(creature, levelIndex, difficulty);
   }, []);
 
   const triggerSpecial = useCallback(() => {

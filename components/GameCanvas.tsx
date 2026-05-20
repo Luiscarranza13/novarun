@@ -8,6 +8,8 @@ import { LEVELS } from "@/game/data/levels";
 import { sfx } from "@/game/SoundEngine";
 
 import { classifyVoiceCommand, VOICE_GRAMMAR } from "@/game/voiceUtils";
+import { ACHIEVEMENT_DEFS, AchievementDef } from "@/game/saveSystem";
+import { Difficulty, AchievementId } from "@/types/game";
 import StartScreen     from "./StartScreen";
 import CharacterSelect from "./CharacterSelect";
 import HUD             from "./HUD";
@@ -15,15 +17,38 @@ import GameOver        from "./GameOver";
 import Victory         from "./Victory";
 import PauseMenu       from "./PauseMenu";
 import HowToPlay       from "./HowToPlay";
+import CreditsScreen   from "./CreditsScreen";
 import styles          from "./GameCanvas.module.css";
 
 const CANVAS_W = 800;
 const CANVAS_H = 480;
+const GAME_TRACKS = [
+  {
+    src: "/audio/ACDC - Back In Black (Official Video).mp3",
+    start: 16,
+    end: 112,
+  },
+  {
+    src: "/audio/ACDC - Highway to Hell (Official Video).mp3",
+    start: 35,
+    end: 126,
+  },
+  {
+    src: "/audio/ACDC - Thunderstruck (Official Video).mp3",
+    start: 33,
+    end: 138,
+  },
+];
 
 export default function GameCanvas() {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const menuAudioRef = useRef<HTMLAudioElement>(null);
   const gameAudioRef = useRef<HTMLAudioElement>(null);
+  const onAchievement = useCallback((id: AchievementId) => {
+    const def = ACHIEVEMENT_DEFS.find((a) => a.id === id);
+    if (def) setToastQueue((q) => [...q, def]);
+  }, []);
+
   const {
     gameState,
     hud,
@@ -36,13 +61,17 @@ export default function GameCanvas() {
     resumeGame,
     goToMenu,
     goToCharacterSelect,
-  } = useGameEngine(canvasRef);
+  } = useGameEngine(canvasRef, onAchievement);
 
-  const [showHow,      setShowHow]      = useState(false);
-  const [lastCreature, setLastCreature] = useState<CreatureData | null>(null);
-  const [currentLevel, setCurrentLevel] = useState(0);
-  const [menuMusicOn,  setMenuMusicOn]  = useState(false);
+  const [showHow,        setShowHow]        = useState(false);
+  const [showCredits,    setShowCredits]    = useState(false);
+  const [lastCreature,   setLastCreature]   = useState<CreatureData | null>(null);
+  const [currentLevel,   setCurrentLevel]   = useState(0);
+  const [gameTrackIndex, setGameTrackIndex] = useState(0);
+  const [menuMusicOn,    setMenuMusicOn]    = useState(false);
   const [gameMusicMuted, setGameMusicMuted] = useState(false);
+  const [difficulty,     setDifficulty]     = useState<Difficulty>("normal");
+  const [toastQueue,     setToastQueue]     = useState<AchievementDef[]>([]);
 
   // Volume state (0–1); affects SFX engine and HTML audio element
   const [sfxVolume,   setSfxVolume]   = useState(1);
@@ -95,8 +124,12 @@ export default function GameCanvas() {
     sfx.stopBGM();
     pauseMenuMusic();
     audio.volume = musicVolume * 0.34;
+    const track = GAME_TRACKS[gameTrackIndex];
+    if (audio.currentTime < track.start || audio.currentTime >= track.end) {
+      audio.currentTime = track.start;
+    }
     audio.play().catch(() => {});
-  }, [musicVolume, pauseMenuMusic]);
+  }, [gameTrackIndex, musicVolume, pauseMenuMusic]);
 
   const pauseGameMusic = useCallback((reset = false) => {
     const audio = gameAudioRef.current;
@@ -117,31 +150,33 @@ export default function GameCanvas() {
     (creature: CreatureData) => {
       pauseMenuMusic();
       setGameMusicMuted(false);
+      setGameTrackIndex(0);
       playGameMusic();
       setLastCreature(creature);
       setCurrentLevel(0);
-      startGame(creature, 0);
+      startGame(creature, 0, difficulty);
     },
-    [pauseMenuMusic, playGameMusic, startGame]
+    [pauseMenuMusic, playGameMusic, startGame, difficulty]
   );
 
   const handleRetry = useCallback(() => {
     if (lastCreature) {
       setGameMusicMuted(false);
       playGameMusic();
-      startGame(lastCreature, currentLevel);
+      startGame(lastCreature, currentLevel, difficulty);
     }
-  }, [lastCreature, currentLevel, playGameMusic, startGame]);
+  }, [lastCreature, currentLevel, playGameMusic, startGame, difficulty]);
 
   const handleNextLevel = useCallback(() => {
     if (lastCreature) {
       const next = currentLevel + 1;
       setCurrentLevel(next);
       setGameMusicMuted(false);
+      setGameTrackIndex(next % GAME_TRACKS.length);
       playGameMusic();
-      startGame(lastCreature, next);
+      startGame(lastCreature, next, difficulty);
     }
-  }, [lastCreature, currentLevel, playGameMusic, startGame]);
+  }, [lastCreature, currentLevel, playGameMusic, startGame, difficulty]);
 
   // Pause menu: resume resumes game music too
   const handleResume = useCallback(() => {
@@ -153,9 +188,9 @@ export default function GameCanvas() {
     if (lastCreature) {
       setGameMusicMuted(false);
       playGameMusic();
-      startGame(lastCreature, currentLevel);
+      startGame(lastCreature, currentLevel, difficulty);
     }
-  }, [lastCreature, currentLevel, playGameMusic, startGame]);
+  }, [lastCreature, currentLevel, playGameMusic, startGame, difficulty]);
 
   // Focus canvas while playing so keyboard works in all browsers
   useEffect(() => {
@@ -198,6 +233,34 @@ export default function GameCanvas() {
     if (gameState !== "paused") pauseGameMusic(gameState !== "playing");
   }, [gameMusicMuted, gameState, pauseGameMusic, playGameMusic]);
 
+  useEffect(() => {
+    const audio = gameAudioRef.current;
+    if (!audio) return;
+
+    const track = GAME_TRACKS[gameTrackIndex];
+    const nextSrc = track.src;
+    const wasPlaying = !audio.paused;
+    if (audio.getAttribute("src") !== nextSrc) {
+      audio.src = nextSrc;
+      audio.load();
+    }
+    audio.currentTime = track.start;
+    audio.volume = musicVolume * 0.34;
+    if (wasPlaying) audio.play().catch(() => {});
+  }, [gameTrackIndex, musicVolume]);
+
+  const handleGameTrackEnded = useCallback(() => {
+    setGameTrackIndex((i) => (i + 1) % GAME_TRACKS.length);
+  }, []);
+
+  const handleGameTrackTimeUpdate = useCallback(() => {
+    const audio = gameAudioRef.current;
+    if (!audio) return;
+    if (audio.currentTime >= GAME_TRACKS[gameTrackIndex].end) {
+      setGameTrackIndex((i) => (i + 1) % GAME_TRACKS.length);
+    }
+  }, [gameTrackIndex]);
+
   const toggleGameAudio = useCallback(() => {
     const soundOn = sfx.toggle();
     sfx.stopBGM();
@@ -210,7 +273,13 @@ export default function GameCanvas() {
   return (
     <div className={styles.root}>
       <audio ref={menuAudioRef} src="/audio/pokemon-intro.mp3" loop preload="auto" />
-      <audio ref={gameAudioRef} src="/audio/musicajuego.mp3"   loop preload="auto" />
+      <audio
+        ref={gameAudioRef}
+        src={GAME_TRACKS[gameTrackIndex].src}
+        preload="auto"
+        onEnded={handleGameTrackEnded}
+        onTimeUpdate={handleGameTrackTimeUpdate}
+      />
 
       {/* Game canvas — always mounted, hidden via class when not in-game */}
       <canvas
@@ -226,10 +295,13 @@ export default function GameCanvas() {
 
       {/* ── UI overlays ─────────────────────────────────────────────────────── */}
 
-      {gameState === "menu" && !showHow && (
+      {gameState === "menu" && !showHow && !showCredits && (
         <StartScreen
           onPlay={() => { playMenuMusic(); goToCharacterSelect(); }}
           onAbout={() => setShowHow(true)}
+          onCredits={() => setShowCredits(true)}
+          difficulty={difficulty}
+          onDifficulty={setDifficulty}
         />
       )}
 
@@ -273,7 +345,16 @@ export default function GameCanvas() {
         </>
       )}
 
-      {showHow && <HowToPlay onClose={() => setShowHow(false)} />}
+      {showHow     && <HowToPlay     onClose={() => setShowHow(false)} />}
+      {showCredits && <CreditsScreen onClose={() => setShowCredits(false)} />}
+
+      {/* Achievement toasts */}
+      {toastQueue.length > 0 && (
+        <AchievementToast
+          achievement={toastQueue[0]}
+          onDone={() => setToastQueue((q) => q.slice(1))}
+        />
+      )}
 
       {shouldPlayMenuMusic && (
         <button
@@ -312,6 +393,32 @@ export default function GameCanvas() {
   );
 }
 
+
+// ── Achievement toast ─────────────────────────────────────────────────────────
+
+function AchievementToast({
+  achievement,
+  onDone,
+}: {
+  achievement: AchievementDef;
+  onDone: () => void;
+}) {
+  useEffect(() => {
+    const id = window.setTimeout(onDone, 3200);
+    return () => clearTimeout(id);
+  }, [onDone]);
+
+  return (
+    <div className={styles.achieveToast}>
+      <span className={styles.achieveIcon}>{achievement.icon}</span>
+      <div className={styles.achieveBody}>
+        <span className={styles.achieveLabel}>Logro desbloqueado</span>
+        <span className={styles.achieveName}>{achievement.name}</span>
+        <span className={styles.achieveDesc}>{achievement.description}</span>
+      </div>
+    </div>
+  );
+}
 
 // ── Mute toggle ───────────────────────────────────────────────────────────────
 

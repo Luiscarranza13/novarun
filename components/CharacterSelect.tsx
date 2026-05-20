@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { CREATURES } from "@/game/data/creatures";
 import { CreatureData } from "@/types/game";
-import { SPRITE_MAP, PokemonId } from "@/game/rendering/sprites";
+import { PokemonId, SPRITE_MAP } from "@/game/rendering/sprites";
 import styles from "./CharacterSelect.module.css";
 
-interface Props { onSelect: (c: CreatureData) => void; onBack: () => void; }
+interface Props {
+  onSelect: (c: CreatureData) => void;
+  onBack: () => void;
+}
 
 const ELEMENT_LABEL: Record<string, string> = {
   fire: "Fuego",
@@ -27,21 +30,21 @@ const ELEMENT_ICON: Record<string, string> = {
 };
 
 const PASSIVE_DESC: Record<string, { name: string; desc: string }> = {
-  pikachu:   { name: "Descarga estatica", desc: "El doble salto libera una descarga electrica que dana a los enemigos cercanos." },
+  pikachu: { name: "Descarga estatica", desc: "El doble salto libera una descarga electrica que dana a los enemigos cercanos." },
   charizard: { name: "Planeo", desc: "Manten salto mientras caes para planear a baja velocidad." },
   bulbasaur: { name: "Regeneracion", desc: "Se cura lentamente de forma continua gracias a su energia vital." },
-  squirtle:  { name: "Escudo acuatico", desc: "Su escudo especial lo hace inmune al dano durante varios segundos." },
-  mewtwo:    { name: "Levitar", desc: "Manten salto en el aire para reducir la gravedad y flotar por mas tiempo." },
-  gengar:    { name: "Vuelo fantasma", desc: "En el aire se mueve mas rapido y cae mas lento que los demas." },
-  eevee:     { name: "Adaptacion", desc: "Su barrida especial lo propulsa a gran velocidad, ignorando la friccion." },
+  squirtle: { name: "Escudo acuatico", desc: "Su escudo especial lo hace inmune al dano durante varios segundos." },
+  mewtwo: { name: "Levitar", desc: "Manten salto en el aire para reducir la gravedad y flotar por mas tiempo." },
+  gengar: { name: "Vuelo fantasma", desc: "En el aire se mueve mas rapido y cae mas lento que los demas." },
+  eevee: { name: "Adaptacion", desc: "Su barrida especial lo propulsa a gran velocidad, ignorando la friccion." },
 };
 
 const STAT_ROWS = [
-  { key: "maxHp",     label: "HP",        max: 130, color: "#FF4444" },
-  { key: "speed",     label: "Velocidad", max: 10,  color: "#44AAFF" },
-  { key: "jumpForce", label: "Salto",     max: 15,  color: "#44FF88" },
-  { key: "attack",    label: "Ataque",    max: 12,  color: "#FF8C00" },
-  { key: "maxEnergy", label: "Energia",   max: 100, color: "#AA44FF" },
+  { key: "maxHp", label: "HP", max: 130, color: "#FF4444" },
+  { key: "speed", label: "Velocidad", max: 10, color: "#44AAFF" },
+  { key: "jumpForce", label: "Salto", max: 15, color: "#44FF88" },
+  { key: "attack", label: "Ataque", max: 12, color: "#FF8C00" },
+  { key: "maxEnergy", label: "Energia", max: 100, color: "#AA44FF" },
 ] as const;
 
 function drawStableSprite(
@@ -72,7 +75,7 @@ export default function CharacterSelect({ onSelect, onBack }: Props) {
           Volver
         </button>
         <h2 className={styles.title}>Elige tu Pokemon</h2>
-        <div className={styles.tagline}>Fan Game · No oficial</div>
+        <div className={styles.tagline}>Fan Game - No oficial</div>
       </div>
 
       <div className={styles.layout}>
@@ -130,7 +133,7 @@ export default function CharacterSelect({ onSelect, onBack }: Props) {
                 {selected.specialName}
               </p>
               <p className={styles.boxText}>{selected.specialDescription}</p>
-              <p className={styles.boxHint}>Tecla: K · Costo: 30 energia</p>
+              <p className={styles.boxHint}>Tecla: K - Costo: 30 energia</p>
             </div>
 
             {passive && (

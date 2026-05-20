@@ -170,12 +170,12 @@ export class Player {
     this.specialTimer = SPECIAL_COOLDOWN;
     this.energy -= 30;
     this.state = "special";
-    sfx.special();
 
     const id  = this.creature.id;
     const dir = this.facingRight ? 1 : -1;
 
     if (id === "pikachu") {
+      sfx.pikachuThunderbolt();
       this.pendingProjectile = new Projectile({
         x: this.x + (this.facingRight ? this.width : -14),
         y: this.y + this.height / 2 - 7,
@@ -183,6 +183,7 @@ export class Player {
         type: "electric", damage: this.baseAttack * 2, color: "#FFD700",
       });
     } else if (id === "charizard") {
+      sfx.special();
       // Big fireball
       this.pendingProjectile = new Projectile({
         x: this.x + (this.facingRight ? this.width : -18),
@@ -191,6 +192,7 @@ export class Player {
         type: "fireball", damage: this.baseAttack * 2.5, color: "#FF4500",
       });
     } else if (id === "bulbasaur") {
+      sfx.special();
       // Vine — heals slightly and launches projectile
       this.heal(15);
       this.pendingProjectile = new Projectile({
@@ -200,9 +202,11 @@ export class Player {
         type: "vine", damage: this.baseAttack * 1.8, color: "#4CAF50",
       });
     } else if (id === "squirtle") {
+      sfx.special();
       // Water shield
       this.shieldTimer = SHIELD_FRAMES;
     } else if (id === "mewtwo") {
+      sfx.special();
       // Psychic blast — area damage projectile
       this.dashTimer = DASH_FRAMES;
       this.vx = dir * 20;
@@ -214,6 +218,7 @@ export class Player {
         type: "psychic", damage: this.baseAttack * 2.2, color: "#9B59B6",
       });
     } else if (id === "gengar") {
+      sfx.special();
       // Shadow ball
       this.pendingProjectile = new Projectile({
         x: this.x + (this.facingRight ? this.width : -16),
@@ -222,6 +227,7 @@ export class Player {
         type: "shadow", damage: this.baseAttack * 2, color: "#7B68EE",
       });
     } else if (id === "eevee") {
+      sfx.special();
       // Tackle dash
       this.dashTimer = DASH_FRAMES;
       this.vx = dir * 18;

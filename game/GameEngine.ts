@@ -1,18 +1,26 @@
-import { CreatureData, GameState, HUDState, LevelStats } from "@/types/game";
+import { CreatureData, Difficulty, AchievementId, GameState, HUDState, LevelStats } from "@/types/game";
 import { LEVELS, TILE_SIZE } from "@/game/data/levels";
 import { Player } from "@/game/entities/Player";
-import { Enemy } from "@/game/entities/Enemy";
+import { Enemy, DiffMult } from "@/game/entities/Enemy";
+import { Boss } from "@/game/entities/Boss";
 import { Collectible } from "@/game/entities/Collectible";
 import { Projectile } from "@/game/entities/Projectile";
 import { aabbOverlap } from "@/game/physics/collision";
 import { sfx } from "@/game/SoundEngine";
-import { saveHighScore } from "@/game/saveSystem";
+import { saveHighScore, unlockAchievement, getAllHighScores } from "@/game/saveSystem";
 
 export interface GameCallbacks {
-  onStateChange: (state: GameState) => void;
-  onHUDUpdate:   (hud: HUDState) => void;
-  onStatsReady?: (stats: LevelStats) => void;
+  onStateChange:   (state: GameState) => void;
+  onHUDUpdate:     (hud: HUDState) => void;
+  onStatsReady?:   (stats: LevelStats) => void;
+  onAchievement?:  (id: AchievementId) => void;
 }
+
+const DIFF_MULT: Record<Difficulty, DiffMult> = {
+  easy:   { hp: 0.65, speed: 0.75, damage: 0.60 },
+  normal: { hp: 1.00, speed: 1.00, damage: 1.00 },
+  hard:   { hp: 1.40, speed: 1.25, damage: 1.35 },
+};
 
 // ─── Particle ──────────────────────────────────────────────────────────────────
 
@@ -90,6 +98,14 @@ export class GameEngine {
   // Enemy projectiles (separate from player projectiles)
   private enemyProjectiles: Projectile[] = [];
 
+  // Boss entity (level 6)
+  private boss: Boss | null = null;
+
+  // Difficulty & achievement tracking
+  private difficulty: Difficulty = "normal";
+  private playerTookDamage = false;
+  private firstKillDone    = false;
+
   // Gamepad state for edge detection
   private gpPrev = { jump: false, attack: false, special: false };
 
@@ -125,7 +141,8 @@ export class GameEngine {
 
   // ── Public ────────────────────────────────────────────────────────────────────
 
-  startLevel(creature: CreatureData, levelIndex: number) {
+  startLevel(creature: CreatureData, levelIndex: number, difficulty: Difficulty = "normal") {
+    this.difficulty = difficulty;
     this.halted          = false;
     this.paused          = false;
     this.frameCount      = 0;
@@ -137,10 +154,12 @@ export class GameEngine {
     this.popups          = [];
     this.shakeAmount     = 0;
     this.levelAnnounceTimer = 130;
-    this.levelStartTime  = Date.now();
-    this.enemiesKilled   = 0;
-    this.coinsCollected  = 0;
+    this.levelStartTime   = Date.now();
+    this.enemiesKilled    = 0;
+    this.coinsCollected   = 0;
     this.enemyProjectiles = [];
+    this.boss             = null;
+    this.playerTookDamage = false;
 
     const level = LEVELS[levelIndex];
     if (!level) return;
@@ -149,9 +168,14 @@ export class GameEngine {
       level.playerStartTile.x, level.playerStartTile.y, creature, TILE_SIZE
     );
 
+    const diff = DIFF_MULT[this.difficulty];
     this.enemies = level.enemySpawns.map(
-      (s) => new Enemy(s.tileX, s.tileY, s.type, s.patrolRange, TILE_SIZE)
+      (s) => new Enemy(s.tileX, s.tileY, s.type, s.patrolRange, TILE_SIZE, diff)
     );
+
+    if (level.bossSpawn) {
+      this.boss = new Boss(level.bossSpawn.tileX, level.bossSpawn.tileY, TILE_SIZE);
+    }
 
     this.collectibles = [
       ...level.coinTiles.map(
@@ -323,7 +347,10 @@ export class GameEngine {
           if (!enemy.dead) {
             enemy.takeDamage(p.creature.stats.attack);
             this.burst(enemy.x + 16, enemy.y + 16, "#FF8C00", 6);
-            if (enemy.dead) this.enemiesKilled++;
+            if (enemy.dead) {
+              this.enemiesKilled++;
+              this._checkFirstKill();
+            }
           }
         }
       }
@@ -340,6 +367,7 @@ export class GameEngine {
             this.score += 200;
             this.enemiesKilled++;
             this.addPopup(enemy.x + 16, enemy.y, "+200", "#FFD700");
+            this._checkFirstKill();
           }
         }
       }
@@ -351,7 +379,7 @@ export class GameEngine {
           const stomp = p.vy > 1 && p.y + p.height < enemy.y + 14;
           if (stomp) {
             enemy.takeDamage(999);
-            if (enemy.dead) this.enemiesKilled++;
+            if (enemy.dead) { this.enemiesKilled++; this._checkFirstKill(); }
             p.vy = -9;
             this.burst(enemy.x + 16, enemy.y, "#FFD700", 10);
             this.score += 300;
@@ -359,10 +387,53 @@ export class GameEngine {
             sfx.stomp();
           } else {
             p.takeDamage(enemy.damage);
+            this.playerTookDamage = true;
             this.shake(8);
             this.burst(p.x + 14, p.y + 14, "#FFFFFF", 8);
           }
         }
+      }
+    }
+
+    // Boss entity
+    if (this.boss && !this.boss.dead) {
+      const boss = this.boss;
+      boss.update(level.tiles, TILE_SIZE, p.x + p.width / 2, p.y + p.height / 2);
+      for (const bp of boss.pendingProjectiles) this.enemyProjectiles.push(bp);
+
+      // Player attacks boss
+      if (p.state === "attacking") {
+        const dir  = p.facingRight ? 1 : -1;
+        const atkX = p.x + (dir > 0 ? p.width : -28);
+        if (aabbOverlap(atkX, p.y + 4, 28, p.height - 8, boss.x, boss.y, boss.width, boss.height)) {
+          boss.takeDamage(p.creature.stats.attack);
+          this.burst(boss.x + boss.width / 2, boss.y + boss.height / 2, "#FF8C00", 7);
+        }
+      }
+      for (const proj of this.projectiles) {
+        if (!proj.active) continue;
+        if (aabbOverlap(proj.x, proj.y, proj.width, proj.height, boss.x, boss.y, boss.width, boss.height)) {
+          boss.takeDamage(proj.damage * 1.2);
+          this.burst(proj.x, proj.y, proj.color, 8);
+          if (proj.type !== "shadow" && proj.type !== "psychic") proj.active = false;
+        }
+      }
+
+      // Boss contact damage
+      if (!p.invincible && aabbOverlap(p.x + 4, p.y + 4, p.width - 8, p.height - 8, boss.x, boss.y, boss.width, boss.height)) {
+        p.takeDamage(boss.damage);
+        this.playerTookDamage = true;
+        this.shake(10);
+        this.burst(p.x + 14, p.y + 14, "#FF4444", 10);
+      }
+
+      if (boss.dead) {
+        this.score += 2000;
+        this.addPopup(boss.x + boss.width / 2, boss.y, "+2000 ¡JEFE!", "#FFD700");
+        this.burst(boss.x + boss.width / 2, boss.y + boss.height / 2, "#FFD700", 30);
+        sfx.victory();
+        const justUnlocked = unlockAchievement("boss_slayer");
+        if (justUnlocked) this.callbacks.onAchievement?.("boss_slayer");
       }
     }
 
@@ -382,6 +453,7 @@ export class GameEngine {
       if (!p.invincible && aabbOverlap(proj.x, proj.y, proj.width, proj.height,
                                        p.x + 4, p.y + 4, p.width - 8, p.height - 8)) {
         p.takeDamage(proj.damage);
+        this.playerTookDamage = true;
         this.shake(6);
         this.burst(proj.x, proj.y, proj.color, 5);
         return false;
@@ -411,12 +483,18 @@ export class GameEngine {
           p.activateStar();
           this.burst(col.x + 11, col.y, "#FFD700", 16);
           this.addPopup(col.x + 11, col.y, "ESTRELLA!", "#FFD700");
+          if (unlockAchievement("star_power")) this.callbacks.onAchievement?.("star_power");
         } else if (col.type === "speed") {
           p.activateSpeed();
           this.burst(col.x + 11, col.y, "#00FFEE", 12);
           this.addPopup(col.x + 11, col.y, "RAPIDO!", "#00FFEE");
         }
       }
+    }
+
+    // Special usage achievement
+    if (this.pulseSpecial) {
+      if (unlockAchievement("used_special")) this.callbacks.onAchievement?.("used_special");
     }
 
     // Passive creature aura effects
@@ -428,14 +506,22 @@ export class GameEngine {
       cancelAnimationFrame(this.animId);
       sfx.stopBGM();
       sfx.victory();
+      const elapsed = Math.floor((Date.now() - this.levelStartTime) / 1000);
       const isHighScore = saveHighScore(this.levelIndex, this.score);
       this.callbacks.onStatsReady?.({
-        timeSeconds:    Math.floor((Date.now() - this.levelStartTime) / 1000),
+        timeSeconds:    elapsed,
         enemiesKilled:  this.enemiesKilled,
         coinsCollected: this.coinsCollected,
         isHighScore,
       });
       this.callbacks.onStateChange("victory");
+      // Per-level achievements
+      if (elapsed < 90 && unlockAchievement("speed_run"))        this.callbacks.onAchievement?.("speed_run");
+      if (!this.playerTookDamage && unlockAchievement("untouchable")) this.callbacks.onAchievement?.("untouchable");
+      if (this.coinsCollected >= 10 && unlockAchievement("collector")) this.callbacks.onAchievement?.("collector");
+      // Completionist: all 6 levels cleared (all high scores > 0)
+      const scores = getAllHighScores();
+      if (scores.every((s) => s > 0) && unlockAchievement("completionist")) this.callbacks.onAchievement?.("completionist");
       return;
     }
 
@@ -464,7 +550,15 @@ export class GameEngine {
       creatureName: this.creature!.name,
       element:      this.creature!.element,
       colors:       this.creature!.colors,
+      boss: this.boss ? { hp: this.boss.hp, maxHp: this.boss.maxHp, phase: this.boss.phase } : null,
     });
+  }
+
+  private _checkFirstKill() {
+    if (!this.firstKillDone) {
+      this.firstKillDone = true;
+      if (unlockAchievement("first_kill")) this.callbacks.onAchievement?.("first_kill");
+    }
   }
 
   // ── Passive creature particle effects ─────────────────────────────────────────
@@ -618,6 +712,7 @@ export class GameEngine {
 
     ctx.save();
     this.renderBackground(ctx, W, H, level);
+    this.renderRockShowFX(ctx, W, H, camX, level.id);
 
     // Tiles — only visible columns
     const startCol = Math.max(0, Math.floor(camX / TILE_SIZE) - 1);
@@ -640,6 +735,7 @@ export class GameEngine {
     // Entities - Use integer coordinates relative to camera
     for (const col of this.collectibles) if (!col.collected) col.draw(ctx, camX);
     for (const e of this.enemies)        e.draw(ctx, camX);
+    if (this.boss) this.boss.draw(ctx, camX);
     for (const proj of this.projectiles)      if (proj.active) proj.draw(ctx, camX);
     for (const proj of this.enemyProjectiles) if (proj.active) proj.draw(ctx, camX);
     for (const pt of this.particles)     pt.draw(ctx, camX);
@@ -906,10 +1002,224 @@ export class GameEngine {
         ctx.fillStyle = `rgba(100,200,255,${wa})`;
         ctx.fillRect(wx, H - 20, 60, 3);
       }
+
+    } else if (level.id === 4) {
+      // ─── Electric Cliff: storm sky ──────────────────────────────────────────
+
+      // Storm cloud layers — parallax 0.06 / 0.14
+      for (let i = 0; i < 10; i++) {
+        const cx2 = ((i * 190 - px * 0.06) % (W + 220) + W + 220) % (W + 220) - 40;
+        const cy2 = 25 + (i % 3) * 35;
+        const cr  = 30 + (i % 3) * 20;
+        const ca  = 0.18 + (i % 3) * 0.08;
+        ctx.fillStyle = `rgba(40,45,60,${ca})`;
+        ctx.beginPath();
+        ctx.arc(cx2,            cy2,      cr,         0, Math.PI * 2);
+        ctx.arc(cx2 + cr * 0.9, cy2 - 8, cr * 0.75,  0, Math.PI * 2);
+        ctx.arc(cx2 + cr * 1.7, cy2,     cr * 0.85,  0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Lightning bolts (animated)
+      for (let i = 0; i < 4; i++) {
+        const lx = ((i * 240 + 80 - px * 0.12) % (W + 260) + W + 260) % (W + 260) - 30;
+        const flash = Math.sin(t * 3.5 + i * 1.8);
+        if (flash > 0.85) {
+          const la = (flash - 0.85) * 6;
+          ctx.save();
+          ctx.strokeStyle = `rgba(200,220,255,${la})`;
+          ctx.lineWidth   = 2;
+          ctx.shadowBlur  = 18; ctx.shadowColor = `rgba(160,200,255,${la})`;
+          ctx.beginPath();
+          let lcy = 0;
+          ctx.moveTo(lx, lcy);
+          for (let s = 0; s < 6; s++) {
+            lcy += 18 + (i + s) % 20;
+            ctx.lineTo(lx + ((s % 2 === 0) ? 12 : -10), lcy);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Electric mist at ground
+      for (let i = 0; i < 6; i++) {
+        const mx = ((i * 200 - px * 0.3) % (W + 220) + W + 220) % (W + 220) - 30;
+        const ma = 0.08 + Math.sin(t * 0.8 + i) * 0.04;
+        ctx.fillStyle = `rgba(80,100,180,${ma})`;
+        ctx.beginPath();
+        ctx.ellipse(mx, H - 45, 80, 35, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+    } else if (level.id === 5) {
+      // ─── Dark Temple: ancient interior ──────────────────────────────────────
+
+      // Stone arch pillars in background — parallax 0.05
+      ctx.fillStyle = "rgba(60,35,12,0.45)";
+      for (let i = 0; i < 7; i++) {
+        const ax = ((i * 170 - px * 0.05) % (W + 180) + W + 180) % (W + 180) - 20;
+        const ah = 110 + (i % 2) * 40;
+        ctx.fillRect(ax, H - ah, 28, ah);
+        // Arch top
+        ctx.beginPath();
+        ctx.arc(ax + 14, H - ah, 14, Math.PI, 0);
+        ctx.fill();
+      }
+
+      // Torch flames — parallax 0.15
+      for (let i = 0; i < 6; i++) {
+        const tx2 = ((i * 200 + 50 - px * 0.15) % (W + 220) + W + 220) % (W + 220) - 20;
+        const ty2 = H - 70 - (i % 3) * 30;
+        const fa  = 0.5 + Math.sin(t * 2.2 + i * 0.8) * 0.25;
+        ctx.save();
+        ctx.shadowBlur = 20; ctx.shadowColor = `rgba(255,150,30,${fa})`;
+        ctx.fillStyle  = `rgba(255,180,40,${fa * 0.8})`;
+        ctx.beginPath();
+        ctx.ellipse(tx2, ty2, 6, 14 + Math.sin(t * 3 + i) * 3, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.fillStyle = `rgba(255,220,80,${fa * 0.6})`;
+        ctx.beginPath();
+        ctx.ellipse(tx2, ty2 + 4, 4, 9, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Ancient floor tiles — parallax 0.28
+      ctx.strokeStyle = "rgba(100,65,25,0.18)"; ctx.lineWidth = 1;
+      for (let i = 0; i < 14; i++) {
+        const fx = ((i * 80 - px * 0.28) % (W + 90) + W + 90) % (W + 90) - 10;
+        ctx.beginPath(); ctx.moveTo(fx, H - 20); ctx.lineTo(fx, H); ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(50,28,8,0.30)";
+      ctx.fillRect(0, H - 22, W, 22);
+
+      // Glowing rune symbols
+      for (let i = 0; i < 5; i++) {
+        const rx = ((i * 220 + 40 - px * 0.10) % (W + 240) + W + 240) % (W + 240) - 30;
+        const ry = 50 + (i % 3) * 40;
+        const ra = 0.15 + Math.sin(t * 1.2 + i * 0.7) * 0.10;
+        ctx.fillStyle = `rgba(200,150,40,${ra})`;
+        ctx.font = "bold 22px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(["☽","✦","⚡","☆","◈"][i], rx, ry);
+      }
+
+    } else if (level.id === 6) {
+      // ─── Volcanic Summit ─────────────────────────────────────────────────────
+
+      // Erupting volcano silhouette — parallax 0.04
+      ctx.fillStyle = "rgba(80,10,10,0.50)";
+      const volX = ((W * 0.7 - px * 0.04) % (W * 1.5) + W * 1.5) % (W * 1.5);
+      ctx.beginPath();
+      ctx.moveTo(volX - 100, H);
+      ctx.lineTo(volX - 60,  H * 0.45);
+      ctx.lineTo(volX,       H * 0.28);
+      ctx.lineTo(volX + 60,  H * 0.45);
+      ctx.lineTo(volX + 110, H);
+      ctx.fill();
+      // Lava glow at crater
+      ctx.save();
+      ctx.shadowBlur = 30; ctx.shadowColor = "rgba(255,80,0,0.7)";
+      ctx.fillStyle  = "rgba(255,140,0,0.5)";
+      ctx.beginPath();
+      ctx.ellipse(volX, H * 0.28, 18, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Lava eruption particles (rising)
+      for (let i = 0; i < 8; i++) {
+        const epx = volX + (Math.sin(i * 1.4 + t * 0.6) * 28);
+        const epy = H * 0.28 - ((t * 1.8 * (0.8 + i * 0.15)) % (H * 0.55));
+        const ea  = Math.max(0, 0.5 - epy / (H * 0.55));
+        ctx.save();
+        ctx.shadowBlur = 8; ctx.shadowColor = "rgba(255,100,0,0.5)";
+        ctx.fillStyle  = `rgba(255,${100 + (i % 3) * 40},0,${ea})`;
+        ctx.beginPath(); ctx.arc(epx, epy + H * 0.28, 3 + (i % 3), 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+
+      // Ash falling — parallax 0.5
+      ctx.fillStyle = "rgba(60,40,30,0.30)";
+      for (let i = 0; i < 30; i++) {
+        const ax2 = ((i * 97 + Math.floor(t * 0.8 * (0.5 + i * 0.05)) - px * 0.5) % (W + 20) + W + 20) % (W + 20) - 10;
+        const ay2 = ((i * 73 + Math.floor(t * 0.5 * (0.3 + i * 0.07))) % H + H) % H;
+        const ar  = 1 + (i % 3) * 0.5;
+        ctx.beginPath(); ctx.arc(ax2, ay2, ar, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Ground lava pools glow
+      for (let i = 0; i < 5; i++) {
+        const lx2 = ((i * 280 - px * 0.55 + 100) % (W + 300) + W + 300) % (W + 300) - 50;
+        const la2 = 0.25 + Math.sin(t * 0.8 + i * 1.1) * 0.12;
+        ctx.save();
+        ctx.shadowBlur = 22; ctx.shadowColor = `rgba(255,80,0,${la2})`;
+        ctx.fillStyle  = `rgba(200,60,0,${la2 * 0.7})`;
+        ctx.beginPath();
+        ctx.ellipse(lx2, H - 10, 50, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
   }
 
   // ── HD Tile drawing ───────────────────────────────────────────────────────────
+
+  private renderRockShowFX(ctx: CanvasRenderingContext2D, W: number, H: number, camX: number, levelId: number) {
+    const t = Date.now() / 1000;
+    const warm = levelId === 3 ? "80,190,255" : levelId === 6 ? "255,70,20" : "255,210,70";
+    const cool = levelId === 4 ? "80,140,255" : "180,80,255";
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    for (let i = 0; i < 3; i++) {
+      const anchor = ((i * 360 - camX * 0.18) % (W + 420) + W + 420) % (W + 420) - 160;
+      const sway = Math.sin(t * 1.6 + i * 1.8) * 70;
+      const color = i % 2 === 0 ? warm : cool;
+      const grad = ctx.createLinearGradient(anchor, 0, anchor + sway, H);
+      grad.addColorStop(0, `rgba(${color},0.18)`);
+      grad.addColorStop(0.55, `rgba(${color},0.05)`);
+      grad.addColorStop(1, `rgba(${color},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(anchor - 38, 0);
+      ctx.lineTo(anchor + 38, 0);
+      ctx.lineTo(anchor + sway + 95, H);
+      ctx.lineTo(anchor + sway - 95, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    if (levelId === 4 || levelId === 6) {
+      ctx.strokeStyle = `rgba(${warm},${0.18 + Math.sin(t * 6) * 0.08})`;
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        const x = ((i * 260 + 80 - camX * 0.35) % (W + 280) + W + 280) % (W + 280) - 80;
+        const y = 24 + (i % 2) * 22;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 22, y + 36);
+        ctx.lineTo(x + 6, y + 36);
+        ctx.lineTo(x + 32, y + 78);
+        ctx.stroke();
+      }
+    }
+
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    for (let i = 0; i < 5; i++) {
+      const sx = ((i * 240 - camX * 0.52) % (W + 260) + W + 260) % (W + 260) - 90;
+      const baseY = H - 36;
+      ctx.fillRect(sx, baseY - 34, 28, 34);
+      ctx.fillRect(sx + 34, baseY - 48, 34, 48);
+      ctx.fillRect(sx + 75, baseY - 28, 24, 28);
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(sx + 38, baseY - 43, 26, 4);
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+    }
+
+    ctx.restore();
+  }
 
   private drawSolid(
     ctx: CanvasRenderingContext2D,
@@ -1002,7 +1312,7 @@ export class GameEngine {
       ctx.fillStyle = "rgba(80,80,180,0.18)";
       ctx.fillRect(x, y + T - 5, T, 5);
 
-    } else {
+    } else if (levelId === 3) {
       // ─── Seafoam: ice blocks ─────────────────────────────────────────────
       ctx.fillStyle = "#8DC8E8";
       ctx.fillRect(x, y, T, T);
@@ -1040,6 +1350,77 @@ export class GameEngine {
       // Bottom edge shadow
       ctx.fillStyle = "rgba(40,100,150,0.32)";
       ctx.fillRect(x, y + T - 5, T, 5);
+
+    } else if (levelId === 4) {
+      // ─── Electric cliff: dark slate with energy veins ────────────────────
+      ctx.fillStyle = "#1C2238";
+      ctx.fillRect(x, y, T, T);
+      ctx.fillStyle = "#22283E";
+      ctx.fillRect(x + 3, y + 3, T - 6, T - 6);
+      if (!hasAbove) {
+        ctx.fillStyle = "#3A4468";
+        ctx.fillRect(x, y, T, 6);
+        ctx.fillStyle = "rgba(100,140,220,0.35)";
+        ctx.fillRect(x, y, T, 2);
+      }
+      // Electric vein lines
+      ctx.strokeStyle = "rgba(80,120,200,0.40)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 5,  y + 6);  ctx.lineTo(x + 14, y + 18);
+      ctx.moveTo(x + 20, y + 4);  ctx.lineTo(x + 28, y + 15);
+      ctx.moveTo(x + T - 8, y + 10); ctx.lineTo(x + T - 3, y + 24);
+      ctx.stroke();
+      // Glowing node
+      ctx.fillStyle = "rgba(100,160,255,0.25)";
+      ctx.fillRect(x + 8, y + 18, 4, 4);
+
+    } else if (levelId === 5) {
+      // ─── Ancient temple: sand stone with carved marks ────────────────────
+      ctx.fillStyle = "#3D2010";
+      ctx.fillRect(x, y, T, T);
+      ctx.fillStyle = "rgba(200,130,60,0.12)";
+      ctx.fillRect(x + 2, y + 2, T - 4, T - 4);
+      if (!hasAbove) {
+        ctx.fillStyle = "#5A3018";
+        ctx.fillRect(x, y, T, 7);
+        ctx.fillStyle = "rgba(220,160,80,0.30)";
+        ctx.fillRect(x, y, T, 3);
+      }
+      // Block joints
+      ctx.strokeStyle = "rgba(30,15,5,0.45)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + T / 2, y); ctx.lineTo(x + T / 2, y + T);
+      ctx.moveTo(x, y + T / 2); ctx.lineTo(x + T, y + T / 2);
+      ctx.stroke();
+      // Carved glyph accent
+      ctx.fillStyle = "rgba(200,150,60,0.20)";
+      ctx.fillRect(x + T * 0.35, y + T * 0.38, T * 0.30, T * 0.24);
+
+    } else if (levelId === 6) {
+      // ─── Volcanic: dark basalt with lava cracks ───────────────────────────
+      ctx.fillStyle = "#2A0808";
+      ctx.fillRect(x, y, T, T);
+      ctx.fillStyle = "#1C0404";
+      ctx.fillRect(x + 3, y + 3, T - 6, T - 6);
+      if (!hasAbove) {
+        ctx.fillStyle = "#5A1010";
+        ctx.fillRect(x, y, T, 6);
+        ctx.fillStyle = "rgba(255,80,0,0.25)";
+        ctx.fillRect(x, y, T, 2);
+      }
+      // Lava crack network
+      ctx.strokeStyle = "rgba(220,80,0,0.50)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 3,     y + 5);  ctx.lineTo(x + 14,    y + 18);
+      ctx.moveTo(x + 14,    y + 18); ctx.lineTo(x + 22,    y + 14);
+      ctx.moveTo(x + 22,    y + 14); ctx.lineTo(x + T - 4, y + 26);
+      ctx.moveTo(x + T - 9, y + 7);  ctx.lineTo(x + T - 18, y + 20);
+      ctx.stroke();
+      // Lava glow node
+      ctx.fillStyle = "rgba(255,100,0,0.30)";
+      ctx.fillRect(x + 12, y + 16, 5, 5);
+      ctx.fillRect(x + T - 6, y + 8, 4, 4);
+
     }
 
     // Tile grid line (very faint)
@@ -1088,7 +1469,7 @@ export class GameEngine {
       ctx.fillStyle = "rgba(180,180,255,0.20)";
       ctx.fillRect(x + 2, y, T - 4, 1);
 
-    } else {
+    } else if (levelId === 3) {
       // Ice slab platform
       ctx.fillStyle = "#A8D8F0";
       ctx.beginPath(); ctx.roundRect(x, y, T, 14, [5, 5, 2, 2]); ctx.fill();
@@ -1103,6 +1484,49 @@ export class GameEngine {
       ctx.fillRect(x + 2, y, T - 4, 3);
       ctx.fillStyle = "rgba(255,255,255,0.25)";
       ctx.fillRect(x + 2, y, T - 4, 1);
+
+    } else if (levelId === 4) {
+      // Electric rock ledge
+      ctx.fillStyle = "#2C3452";
+      ctx.beginPath(); ctx.roundRect(x, y, T, 14, [5, 5, 2, 2]); ctx.fill();
+      ctx.fillStyle = "#404C72";
+      ctx.beginPath(); ctx.roundRect(x + 2, y + 1, T - 4, 6, [4, 4, 0, 0]); ctx.fill();
+      ctx.fillStyle = "rgba(100,140,220,0.40)";
+      ctx.fillRect(x + 2, y, T - 4, 3);
+      ctx.strokeStyle = "rgba(80,120,200,0.30)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + T * 0.30, y + 2); ctx.lineTo(x + T * 0.38, y + 11);
+      ctx.moveTo(x + T * 0.62, y + 2); ctx.lineTo(x + T * 0.54, y + 11);
+      ctx.stroke();
+
+    } else if (levelId === 5) {
+      // Ancient stone slab
+      ctx.fillStyle = "#5C3018";
+      ctx.beginPath(); ctx.roundRect(x, y, T, 14, [4, 4, 2, 2]); ctx.fill();
+      ctx.fillStyle = "#7A4828";
+      ctx.beginPath(); ctx.roundRect(x + 2, y + 1, T - 4, 7, [3, 3, 0, 0]); ctx.fill();
+      ctx.fillStyle = "rgba(210,150,70,0.28)";
+      ctx.fillRect(x + 2, y, T - 4, 3);
+      // Carved edge marks
+      ctx.strokeStyle = "rgba(180,110,40,0.30)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + T * 0.25, y); ctx.lineTo(x + T * 0.25, y + 14);
+      ctx.moveTo(x + T * 0.75, y); ctx.lineTo(x + T * 0.75, y + 14);
+      ctx.stroke();
+
+    } else if (levelId === 6) {
+      // Volcanic lava rock ledge
+      ctx.fillStyle = "#4A0C0C";
+      ctx.beginPath(); ctx.roundRect(x, y, T, 14, [5, 5, 2, 2]); ctx.fill();
+      ctx.fillStyle = "#641414";
+      ctx.beginPath(); ctx.roundRect(x + 2, y + 1, T - 4, 6, [4, 4, 0, 0]); ctx.fill();
+      ctx.fillStyle = "rgba(240,80,0,0.35)";
+      ctx.fillRect(x + 2, y, T - 4, 3);
+      // Lava crack on surface
+      ctx.strokeStyle = "rgba(220,70,0,0.50)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + 6); ctx.lineTo(x + T * 0.4, y + 2); ctx.lineTo(x + T * 0.6, y + 8);
+      ctx.stroke();
     }
 
     // Underside shadow

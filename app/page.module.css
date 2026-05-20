@@ -23,8 +23,8 @@
 
 .frame {
   position: relative;
-  width: min(98vw, calc((100svh - 40px) * 1.6667));
-  max-height: calc(100svh - 40px);
+  width: min(98vw, calc((100svh - 88px) * 1.6667));
+  max-height: calc(100svh - 88px);
   aspect-ratio: 5 / 3;
   padding: 1px;
   background: rgba(255, 255, 255, 0.1);
@@ -46,7 +46,7 @@
 
 .footer {
   position: absolute;
-  bottom: 24px;
+  bottom: 18px;
   width: 100%;
   display: flex;
   justify-content: center;

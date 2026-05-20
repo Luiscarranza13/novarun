@@ -3,25 +3,30 @@
 import { HUDState } from "@/types/game";
 import styles from "./HUD.module.css";
 
-interface Props { hud: HUDState; visible: boolean; }
+interface Props {
+  hud: HUDState;
+  visible: boolean;
+}
 
 const ELEMENT_ICON: Record<string, string> = {
-  fire: "🔥", water: "💧", electric: "⚡",
-  plant: "🌿", rock: "🪨", shadow: "👻",
+  fire: "F",
+  water: "A",
+  electric: "E",
+  plant: "P",
+  rock: "R",
+  shadow: "S",
 };
 
 export default function HUD({ hud, visible }: Props) {
   if (!visible) return null;
 
-  const hpPct     = Math.max(0, Math.min(100, (hud.hp / hud.maxHp) * 100));
-  const enerPct   = Math.max(0, Math.min(100, (hud.energy / hud.maxEnergy) * 100));
-  const hpLow     = hpPct < 25;
+  const hpPct = Math.max(0, Math.min(100, (hud.hp / hud.maxHp) * 100));
+  const enerPct = Math.max(0, Math.min(100, (hud.energy / hud.maxEnergy) * 100));
+  const hpLow = hpPct < 25;
 
   return (
     <>
-      {/* ── Top-left: HP + Energy ──────────────────────────────────── */}
       <div className={styles.panel} style={{ top: 10, left: 10 }}>
-        {/* Pokémon name + type */}
         <div className={styles.nameRow}>
           <span className={styles.typeIcon}>{ELEMENT_ICON[hud.element]}</span>
           <span className={styles.pkName} style={{ color: hud.colors.primary }}>
@@ -29,7 +34,6 @@ export default function HUD({ hud, visible }: Props) {
           </span>
         </div>
 
-        {/* HP bar */}
         <div className={styles.barRow}>
           <span className={styles.barLabel}>HP</span>
           <div className={styles.barTrack}>
@@ -43,7 +47,6 @@ export default function HUD({ hud, visible }: Props) {
                 boxShadow: `0 0 7px ${hpLow ? "#ff2020" : hud.colors.primary}88`,
               }}
             />
-            {/* Tick marks */}
             {[25, 50, 75].map((t) => (
               <div key={t} className={styles.tick} style={{ left: `${t}%` }} />
             ))}
@@ -53,7 +56,6 @@ export default function HUD({ hud, visible }: Props) {
           </span>
         </div>
 
-        {/* Energy bar */}
         <div className={styles.barRow}>
           <span className={styles.barLabel}>EN</span>
           <div className={styles.barTrack}>
@@ -65,19 +67,14 @@ export default function HUD({ hud, visible }: Props) {
                 boxShadow: "0 0 7px #44aaff88",
               }}
             />
-            {/* Energy ready indicator at 30 */}
             <div className={styles.tick} style={{ left: "30%" }} />
           </div>
           <span className={styles.barVal}>{Math.ceil(hud.energy)}</span>
         </div>
 
-        {/* Special ready badge */}
-        {enerPct >= 30 && (
-          <div className={styles.specialReady}>✨ Habilidad lista (K)</div>
-        )}
+        {enerPct >= 30 && <div className={styles.specialReady}>Habilidad lista (K)</div>}
       </div>
 
-      {/* ── Top-right: score + level ───────────────────────────────── */}
       <div className={styles.panel} style={{ top: 10, right: 10, alignItems: "flex-end" }}>
         <div className={styles.levelRow}>
           <span className={styles.levelLabel}>NIVEL</span>
@@ -85,16 +82,42 @@ export default function HUD({ hud, visible }: Props) {
         </div>
         <div className={styles.scoreRow}>
           <span className={styles.scoreLabel}>PUNTOS</span>
-          <span className={styles.scoreVal}>
-            {hud.score.toString().padStart(5, "0")}
-          </span>
+          <span className={styles.scoreVal}>{hud.score.toString().padStart(5, "0")}</span>
         </div>
       </div>
 
-      {/* ── Bottom controls hint ───────────────────────────────────── */}
+      {hud.boss && hud.boss.hp > 0 && (
+        <div className={styles.bossBar}>
+          <div className={styles.bossName}>EL MAESTRO</div>
+          <div className={styles.bossTrack}>
+            <div
+              className={styles.bossFill}
+              style={{
+                width: `${(hud.boss.hp / hud.boss.maxHp) * 100}%`,
+                background:
+                  hud.boss.phase === 1
+                    ? "linear-gradient(90deg,#3355FF,#5588FF)"
+                    : hud.boss.phase === 2
+                    ? "linear-gradient(90deg,#CC5500,#FF8822)"
+                    : "linear-gradient(90deg,#CC0000,#FF3333)",
+                boxShadow:
+                  hud.boss.phase === 1
+                    ? "0 0 10px #3355FF88"
+                    : hud.boss.phase === 2
+                    ? "0 0 10px #FF882288"
+                    : "0 0 10px #FF333388",
+              }}
+            />
+            <div className={styles.bossTick} style={{ left: "67%" }} />
+            <div className={styles.bossTick} style={{ left: "33%" }} />
+          </div>
+          <div className={styles.bossPhaseLabel}>Fase {hud.boss.phase}</div>
+        </div>
+      )}
+
       <div className={styles.controls}>
-        <span>←→/AD Mover</span>
-        <span>↑/Z Saltar</span>
+        <span>{"<->"}/AD Mover</span>
+        <span>Arriba/Z Saltar</span>
         <span>J Atacar</span>
         <span>K Habilidad</span>
       </div>

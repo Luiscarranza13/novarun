@@ -5,6 +5,8 @@ import { drawZubat, drawGeodude, drawKoffing } from "@/game/rendering/sprites";
 
 export type EnemyType = "basic" | "jumper" | "shooter";
 
+export interface DiffMult { hp: number; speed: number; damage: number; }
+
 const GRAVITY    = 0.55;
 const MAX_FALL   = 14;
 
@@ -43,20 +45,21 @@ export class Enemy {
   constructor(
     tileX: number, tileY: number,
     type: EnemyType, patrolRange: number,
-    TILE_SIZE: number
+    TILE_SIZE: number,
+    diff: DiffMult = { hp: 1, speed: 1, damage: 1 }
   ) {
     this.type   = type;
     this.x      = tileX * TILE_SIZE;
     this.y      = tileY * TILE_SIZE - this.height;
-    this.damage = type === "basic" ? 15 : type === "jumper" ? 22 : 10;
-    this.hp = this.maxHp = type === "basic" ? 30 : type === "jumper" ? 45 : 55;
+    this.damage = (type === "basic" ? 15 : type === "jumper" ? 22 : 10) * diff.damage;
+    this.hp = this.maxHp = (type === "basic" ? 30 : type === "jumper" ? 45 : 55) * diff.hp;
 
     if (type === "shooter") {
       this.vx = 0;  // stands still
       this.shootInterval = 130 + Math.floor(Math.random() * 60);
       this.shootCooldown = Math.floor(Math.random() * this.shootInterval);
     } else {
-      this.vx = type === "basic" ? -1.6 : -1.2;
+      this.vx = (type === "basic" ? -1.6 : -1.2) * diff.speed;
       this.shootInterval = 0;
     }
 
