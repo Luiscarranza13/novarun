@@ -421,6 +421,24 @@ export class SoundEngine {
     }
     return !this.muted;
   }
+
+  setSfxVolume(v: number) {
+    if (!this.sfxBus || !this.ctx) return;
+    this.sfxBus.gain.setTargetAtTime(v * 0.22, this.ctx.currentTime, 0.06);
+  }
+
+  setMusicBusVolume(v: number) {
+    if (!this.musicBus || !this.ctx) return;
+    this.musicBus.gain.setTargetAtTime(v * 0.22, this.ctx.currentTime, 0.06);
+  }
+
+  powerup() {
+    this.tone(C5,  0.06, "sine", 0.14, 0);
+    this.tone(E5,  0.06, "sine", 0.14, 0.06);
+    this.tone(G5,  0.06, "sine", 0.13, 0.12);
+    this.tone(C6,  0.18, "sine", 0.12, 0.18);
+    this.tone(G6,  0.14, "sine", 0.08, 0.32);
+  }
 }
 
 export const sfx = new SoundEngine();

@@ -18,8 +18,16 @@ export type GameState =
   | "menu"
   | "character-select"
   | "playing"
+  | "paused"
   | "game-over"
   | "victory";
+
+export interface LevelStats {
+  timeSeconds: number;
+  enemiesKilled: number;
+  coinsCollected: number;
+  isHighScore: boolean;
+}
 
 // ─── Creature / character types ───────────────────────────────────────────────
 
@@ -76,7 +84,7 @@ export type TileType = 0 | 1 | 2;
 export interface EnemySpawnData {
   tileX: number;
   tileY: number;
-  type: "basic" | "jumper";
+  type: "basic" | "jumper" | "shooter";
   /** patrol range in tiles from spawn point */
   patrolRange: number;
 }
@@ -88,6 +96,8 @@ export interface LevelData {
   enemySpawns: EnemySpawnData[];
   coinTiles: Vec2[];
   heartTiles: Vec2[];
+  starTiles?: Vec2[];
+  speedTiles?: Vec2[];
   goalTile: Vec2;
   playerStartTile: Vec2;
   bgTop: string;

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GameEngine } from "@/game/GameEngine";
-import { CreatureData, GameState, HUDState } from "@/types/game";
+import { CreatureData, GameState, HUDState, LevelStats } from "@/types/game";
 
 const DEFAULT_HUD: HUDState = {
   hp: 100, maxHp: 100, energy: 100, maxEnergy: 100, score: 0, level: 1,
@@ -12,13 +12,8 @@ const DEFAULT_HUD: HUDState = {
 
 function stopEngine(engine: GameEngine | null) {
   if (!engine) return;
-
   try {
-    if (typeof engine.stop === "function") {
-      engine.stop();
-      return;
-    }
-
+    if (typeof engine.stop === "function") { engine.stop(); return; }
     engine.destroy();
   } catch (error) {
     console.warn("Unable to stop game engine before navigation.", error);
@@ -29,20 +24,36 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
   const engineRef  = useRef<GameEngine | null>(null);
   const [gameState, setGameState] = useState<GameState>("menu");
   const [hud,       setHud]       = useState<HUDState>(DEFAULT_HUD);
+  const [levelStats, setLevelStats] = useState<LevelStats | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const engine = new GameEngine(canvas, {
-      onStateChange: (state) => setGameState(state),
-      onHUDUpdate:   (h)     => setHud(h),
+      onStateChange:  (state) => setGameState(state),
+      onHUDUpdate:    (h)     => setHud(h),
+      onStatsReady:   (stats) => setLevelStats(stats),
     });
     engineRef.current = engine;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))
         e.preventDefault();
+
+      // Escape toggles pause while playing or resumes while paused
+      if (e.key === "Escape") {
+        const eng = engineRef.current;
+        if (!eng) return;
+        // Access gameState via ref pattern via setGameState callback trick
+        setGameState((prev) => {
+          if (prev === "playing") { eng.pause(); return prev; }
+          if (prev === "paused")  { eng.resume(); return prev; }
+          return prev;
+        });
+        return;
+      }
+
       engine.handleKeyDown(e.key);
     };
     const onKeyUp = (e: KeyboardEvent) => engine.handleKeyUp(e.key);
@@ -60,14 +71,12 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
 
   const startGame = useCallback((creature: CreatureData, levelIndex = 0) => {
     setGameState("playing");
+    setLevelStats(null);
     engineRef.current?.startLevel(creature, levelIndex);
   }, []);
 
   const triggerSpecial = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-
-    engine.triggerSpecial();
+    engineRef.current?.triggerSpecial();
   }, []);
 
   const triggerVoiceAction = useCallback((key: string, duration: number) => {
@@ -82,7 +91,14 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
     engineRef.current?.handleKeyUp(key);
   }, []);
 
-  // Stop the engine loop before navigating away from an active game
+  const pauseGame = useCallback(() => {
+    engineRef.current?.pause();
+  }, []);
+
+  const resumeGame = useCallback(() => {
+    engineRef.current?.resume();
+  }, []);
+
   const goToMenu = useCallback(() => {
     stopEngine(engineRef.current);
     setGameState("menu");
@@ -96,11 +112,14 @@ export function useGameEngine(canvasRef: React.RefObject<HTMLCanvasElement>) {
   return {
     gameState,
     hud,
+    levelStats,
     startGame,
     triggerSpecial,
     triggerVoiceAction,
     pressControl,
     releaseControl,
+    pauseGame,
+    resumeGame,
     goToMenu,
     goToCharacterSelect,
   };

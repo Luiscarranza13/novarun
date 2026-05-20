@@ -13,77 +13,97 @@ import CharacterSelect from "./CharacterSelect";
 import HUD             from "./HUD";
 import GameOver        from "./GameOver";
 import Victory         from "./Victory";
+import PauseMenu       from "./PauseMenu";
 import HowToPlay       from "./HowToPlay";
 import styles          from "./GameCanvas.module.css";
+
+// suppress unused import warning — normalizeVoiceText is used in VoiceSpecialButton
+void normalizeVoiceText;
 
 const CANVAS_W = 800;
 const CANVAS_H = 480;
 
 export default function GameCanvas() {
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
   const menuAudioRef = useRef<HTMLAudioElement>(null);
   const gameAudioRef = useRef<HTMLAudioElement>(null);
   const {
     gameState,
     hud,
+    levelStats,
     startGame,
     triggerSpecial,
     pressControl,
     releaseControl,
+    pauseGame,
+    resumeGame,
     goToMenu,
     goToCharacterSelect,
-  } =
-    useGameEngine(canvasRef);
+  } = useGameEngine(canvasRef);
 
   const [showHow,      setShowHow]      = useState(false);
   const [lastCreature, setLastCreature] = useState<CreatureData | null>(null);
   const [currentLevel, setCurrentLevel] = useState(0);
-  const [menuMusicOn, setMenuMusicOn] = useState(false);
+  const [menuMusicOn,  setMenuMusicOn]  = useState(false);
   const [gameMusicMuted, setGameMusicMuted] = useState(false);
+
+  // Volume state (0–1); affects SFX engine and HTML audio element
+  const [sfxVolume,   setSfxVolume]   = useState(1);
+  const [musicVolume, setMusicVolume] = useState(1);
 
   useEffect(() => {
     sfx.stopBGM();
     return () => sfx.stopBGM();
   }, []);
 
+  // ── SFX volume ──────────────────────────────────────────────────────────────
+  const handleSfxVolume = useCallback((v: number) => {
+    setSfxVolume(v);
+    sfx.setSfxVolume(v);
+  }, []);
+
+  // ── Music volume ────────────────────────────────────────────────────────────
+  const handleMusicVolume = useCallback((v: number) => {
+    setMusicVolume(v);
+    const audio = gameAudioRef.current;
+    if (audio) audio.volume = v * 0.34;
+    const menuAudio = menuAudioRef.current;
+    if (menuAudio) menuAudio.volume = v * 0.55;
+  }, []);
+
+  // ── Menu audio ──────────────────────────────────────────────────────────────
   const playMenuMusic = useCallback(() => {
     const audio = menuAudioRef.current;
     if (!audio) return;
-
     sfx.stopBGM();
     const gameAudio = gameAudioRef.current;
-    if (gameAudio) {
-      gameAudio.pause();
-      gameAudio.currentTime = 0;
-    }
-    audio.volume = 0.55;
+    if (gameAudio) { gameAudio.pause(); gameAudio.currentTime = 0; }
+    audio.volume = musicVolume * 0.55;
     audio.play()
       .then(() => setMenuMusicOn(true))
       .catch(() => setMenuMusicOn(false));
-  }, []);
+  }, [musicVolume]);
 
   const pauseMenuMusic = useCallback(() => {
     const audio = menuAudioRef.current;
     if (!audio) return;
-
     audio.pause();
     setMenuMusicOn(false);
   }, []);
 
+  // ── Game audio ──────────────────────────────────────────────────────────────
   const playGameMusic = useCallback(() => {
     const audio = gameAudioRef.current;
     if (!audio) return;
-
     sfx.stopBGM();
     pauseMenuMusic();
-    audio.volume = 0.34;
+    audio.volume = musicVolume * 0.34;
     audio.play().catch(() => {});
-  }, [pauseMenuMusic]);
+  }, [musicVolume, pauseMenuMusic]);
 
   const pauseGameMusic = useCallback((reset = false) => {
     const audio = gameAudioRef.current;
     if (!audio) return;
-
     audio.pause();
     if (reset) audio.currentTime = 0;
   }, []);
@@ -91,11 +111,11 @@ export default function GameCanvas() {
   const toggleMenuMusic = useCallback(() => {
     const audio = menuAudioRef.current;
     if (!audio) return;
-
     if (audio.paused) playMenuMusic();
     else pauseMenuMusic();
   }, [pauseMenuMusic, playMenuMusic]);
 
+  // ── Level handlers ──────────────────────────────────────────────────────────
   const handleSelect = useCallback(
     (creature: CreatureData) => {
       pauseMenuMusic();
@@ -126,59 +146,84 @@ export default function GameCanvas() {
     }
   }, [lastCreature, currentLevel, playGameMusic, startGame]);
 
+  // Pause menu: resume resumes game music too
+  const handleResume = useCallback(() => {
+    resumeGame();
+    if (!gameMusicMuted) playGameMusic();
+  }, [resumeGame, gameMusicMuted, playGameMusic]);
+
+  const handlePauseRetry = useCallback(() => {
+    if (lastCreature) {
+      setGameMusicMuted(false);
+      playGameMusic();
+      startGame(lastCreature, currentLevel);
+    }
+  }, [lastCreature, currentLevel, playGameMusic, startGame]);
+
   // Focus canvas while playing so keyboard works in all browsers
   useEffect(() => {
     if (gameState === "playing") canvasRef.current?.focus();
   }, [gameState]);
 
+  // Pause game music when paused
+  useEffect(() => {
+    if (gameState === "paused") pauseGameMusic();
+  }, [gameState, pauseGameMusic]);
+
   const isInGame =
-    gameState === "playing" || gameState === "game-over" || gameState === "victory";
+    gameState === "playing" || gameState === "paused" ||
+    gameState === "game-over" || gameState === "victory";
   const shouldPlayMenuMusic = gameState === "menu" || gameState === "character-select";
 
   useEffect(() => {
     const audio = menuAudioRef.current;
     if (!audio) return;
-
-    audio.volume = 0.55;
-
+    audio.volume = musicVolume * 0.55;
     if (!shouldPlayMenuMusic) {
       pauseMenuMusic();
       audio.currentTime = 0;
       return;
     }
-
     playMenuMusic();
     window.addEventListener("pointerdown", playMenuMusic, { once: true });
-    window.addEventListener("keydown", playMenuMusic, { once: true });
-
+    window.addEventListener("keydown",     playMenuMusic, { once: true });
     return () => {
       window.removeEventListener("pointerdown", playMenuMusic);
-      window.removeEventListener("keydown", playMenuMusic);
+      window.removeEventListener("keydown",     playMenuMusic);
     };
-  }, [pauseMenuMusic, playMenuMusic, shouldPlayMenuMusic]);
+  }, [pauseMenuMusic, playMenuMusic, shouldPlayMenuMusic, musicVolume]);
 
   useEffect(() => {
     if (gameState === "playing" && !gameMusicMuted) {
       playGameMusic();
       return;
     }
-
-    pauseGameMusic(gameState !== "playing");
+    if (gameState !== "paused") pauseGameMusic(gameState !== "playing");
   }, [gameMusicMuted, gameState, pauseGameMusic, playGameMusic]);
 
   const toggleGameAudio = useCallback(() => {
     const soundOn = sfx.toggle();
     sfx.stopBGM();
     setGameMusicMuted(!soundOn);
-
     if (soundOn) playGameMusic();
     else pauseGameMusic();
   }, [pauseGameMusic, playGameMusic]);
 
+  // Voice action forwarder (used by VoiceSpecialButton)
+  const triggerVoiceAction = useCallback(
+    (key: string, duration: number) => {
+      // Access engine via hook's pressControl/releaseControl
+      pressControl(key);
+      window.setTimeout(() => releaseControl(key), duration);
+    },
+    [pressControl, releaseControl]
+  );
+
   return (
     <div className={styles.root}>
       <audio ref={menuAudioRef} src="/audio/pokemon-intro.mp3" loop preload="auto" />
-      <audio ref={gameAudioRef} src="/audio/musicajuego.mp3" loop preload="auto" />
+      <audio ref={gameAudioRef} src="/audio/musicajuego.mp3"   loop preload="auto" />
+
       {/* Game canvas — always mounted, hidden via class when not in-game */}
       <canvas
         ref={canvasRef}
@@ -191,14 +236,11 @@ export default function GameCanvas() {
       {/* Dark background for non-game screens */}
       {!isInGame && <div className={styles.idleBg} />}
 
-      {/* ── UI overlays ────────────────────────────────────────── */}
+      {/* ── UI overlays ─────────────────────────────────────────────────────── */}
 
       {gameState === "menu" && !showHow && (
         <StartScreen
-          onPlay={() => {
-            playMenuMusic();
-            goToCharacterSelect();
-          }}
+          onPlay={() => { playMenuMusic(); goToCharacterSelect(); }}
           onAbout={() => setShowHow(true)}
         />
       )}
@@ -207,7 +249,19 @@ export default function GameCanvas() {
         <CharacterSelect onSelect={handleSelect} onBack={goToMenu} />
       )}
 
-      {gameState === "playing" && <HUD hud={hud} visible />}
+      {(gameState === "playing" || gameState === "paused") && <HUD hud={hud} visible />}
+
+      {gameState === "paused" && (
+        <PauseMenu
+          onResume={handleResume}
+          onRetry={handlePauseRetry}
+          onMenu={goToMenu}
+          sfxVolume={sfxVolume}
+          musicVolume={musicVolume}
+          onSfxVolume={handleSfxVolume}
+          onMusicVolume={handleMusicVolume}
+        />
+      )}
 
       {gameState === "game-over" && (
         <>
@@ -225,6 +279,7 @@ export default function GameCanvas() {
           <Victory
             score={hud.score} level={hud.level}
             hasNextLevel={currentLevel + 1 < LEVELS.length}
+            stats={levelStats}
             onNext={handleNextLevel} onMenu={goToMenu}
           />
         </>
@@ -244,11 +299,22 @@ export default function GameCanvas() {
       )}
 
       {/* Mute button while playing */}
-      {isInGame && <MuteButton muted={gameMusicMuted} onToggle={toggleGameAudio} />}
+      {isInGame && gameState !== "paused" && (
+        <MuteButton muted={gameMusicMuted} onToggle={toggleGameAudio} />
+      )}
+
+      {/* Pause button (mobile-friendly) */}
+      {gameState === "playing" && (
+        <button type="button" className={styles.pauseBtn} onClick={pauseGame} title="Pausar (Esc)">
+          ⏸
+        </button>
+      )}
+
       {gameState === "playing" && (
         <VoiceSpecialButton
-          onSpecial={triggerSpecial}
+          onSpecial={() => { /* triggerSpecial via engine */ }}
           onAction={triggerVoiceAction}
+          triggerSpecial={triggerSpecial}
         />
       )}
       {gameState === "playing" && (
@@ -360,6 +426,7 @@ type SpeechRecognition = EventTarget & {
   onresult: ((event: SpeechRecognitionResultEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
+  onstart: (() => void) | null;
   start: () => void;
   stop: () => void;
 };
@@ -376,19 +443,22 @@ declare global {
 function VoiceSpecialButton({
   onSpecial,
   onAction,
+  triggerSpecial,
 }: {
   onSpecial: () => void;
   onAction: (key: string, duration: number) => void;
+  triggerSpecial: () => void;
 }) {
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const enabledRef = useRef(false);
-  const lastTriggerRef = useRef(0);
-  const lastIndexRef = useRef(-1);
-  const restartTimerRef = useRef<number | null>(null);
-  
+  void onSpecial;
+  const recognitionRef   = useRef<SpeechRecognition | null>(null);
+  const enabledRef       = useRef(false);
+  const lastTriggerRef   = useRef(0);
+  const lastIndexRef     = useRef(-1);
+  const restartTimerRef  = useRef<number | null>(null);
+
   const [enabled, setEnabled] = useState(false);
-  const [heard, setHeard] = useState("");
-  const [status, setStatus] = useState<"idle" | "listening" | "heard" | "unsupported" | "blocked">("idle");
+  const [heard,   setHeard]   = useState("");
+  const [status,  setStatus]  = useState<"idle" | "listening" | "heard" | "unsupported" | "blocked">("idle");
 
   const stopListening = useCallback(() => {
     enabledRef.current = false;
@@ -399,48 +469,35 @@ function VoiceSpecialButton({
     setEnabled(false);
     setStatus("idle");
     setHeard("");
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      // ignore
-    }
+    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
   }, []);
 
   const startListening = useCallback(() => {
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     const GrammarList = window.SpeechGrammarList ?? window.webkitSpeechGrammarList;
 
-    if (!Recognition) {
-      setStatus("unsupported");
-      return;
-    }
+    if (!Recognition) { setStatus("unsupported"); return; }
 
     const recognition = new Recognition();
-    
-    // Bias recognition with a custom grammar list
+
     if (GrammarList) {
       const grammar = "#JSGF V1.0; grammar commands; public <command> = uno | dos | tres | cuatro | 1 | 2 | 3 | 4 | izquierda | derecha | salta | saltar | habilidad | especial | poder | ataque | fuego | trueno | magia | arriba | sube | avanza | retrocede ;";
-      const speechRecognitionList = new GrammarList();
-      speechRecognitionList.addFromString(grammar, 1);
-      recognition.grammars = speechRecognitionList;
+      const list = new GrammarList();
+      list.addFromString(grammar, 1);
+      recognition.grammars = list;
     }
 
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.continuous      = true;
+    recognition.interimResults  = true;
     recognition.maxAlternatives = 1;
     recognition.lang = "es-ES";
 
     recognition.onresult = (event) => {
       const now = Date.now();
-      
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
+        const result     = event.results[i];
         const transcript = result[0].transcript.toLowerCase().trim();
-        
         if (!transcript) continue;
-        
-        console.log(`[Voz] Detectado: "${transcript}" (Confianza: ${result[0].confidence.toFixed(2)})`);
-
         if (i <= lastIndexRef.current && !result.isFinal) continue;
 
         const moveKey = getMovementVoiceKey(transcript);
@@ -448,10 +505,9 @@ function VoiceSpecialButton({
 
         if (moveKey || special) {
           if (now - lastTriggerRef.current < 400) continue;
-
           lastTriggerRef.current = now;
-          lastIndexRef.current = i;
-          
+          lastIndexRef.current   = i;
+
           const word = transcript.split(" ").pop() || transcript;
           setHeard(word.substring(0, 10));
           setStatus("heard");
@@ -460,24 +516,18 @@ function VoiceSpecialButton({
             const duration = moveKey === "ArrowUp" ? 250 : 800;
             onAction(moveKey, duration);
           } else {
-            onSpecial();
+            triggerSpecial();
           }
 
           window.setTimeout(() => {
-            if (enabledRef.current) {
-              setStatus("listening");
-              setHeard("");
-            }
+            if (enabledRef.current) { setStatus("listening"); setHeard(""); }
           }, 900);
-          
-          break; 
+          break;
         }
       }
     };
 
-    recognition.onstart = () => {
-      if (enabledRef.current) setStatus("listening");
-    };
+    recognition.onstart = () => { if (enabledRef.current) setStatus("listening"); };
 
     recognition.onerror = (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
@@ -491,37 +541,27 @@ function VoiceSpecialButton({
 
     recognition.onend = () => {
       if (!enabledRef.current) return;
-      // Auto-restart if it stops for some reason (silence timeout, etc)
       restartTimerRef.current = window.setTimeout(() => {
         if (!enabledRef.current) return;
-        try {
-          recognition.start();
-        } catch {
-          setStatus("listening");
-        }
+        try { recognition.start(); } catch { setStatus("listening"); }
       }, 300);
     };
 
     recognitionRef.current = recognition;
-    enabledRef.current = true;
+    enabledRef.current     = true;
     setEnabled(true);
-    lastIndexRef.current = -1;
+    lastIndexRef.current   = -1;
     setStatus("listening");
-
-    try {
-      recognition.start();
-    } catch {
-      setStatus("listening");
-    }
-  }, [onSpecial, onPress, onRelease]);
+    try { recognition.start(); } catch { setStatus("listening"); }
+  }, [onAction, triggerSpecial]);
 
   useEffect(() => stopListening, [stopListening]);
 
   const label =
     status === "unsupported" ? "Voz no disponible" :
-    status === "blocked" ? "Permite microfono" :
-    status === "heard" ? `¡${heard}!` :
-    enabled ? "Voz activa" : "Voz";
+    status === "blocked"     ? "Permite microfono" :
+    status === "heard"       ? `¡${heard}!` :
+    enabled                  ? "Voz activa" : "Voz";
 
   return (
     <button
@@ -535,14 +575,3 @@ function VoiceSpecialButton({
     </button>
   );
 }
-
-function normalizeVoiceTextLocal(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-

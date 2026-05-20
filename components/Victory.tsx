@@ -1,16 +1,24 @@
 "use client";
 
+import { LevelStats } from "@/types/game";
 import styles from "./Victory.module.css";
 
 interface Props {
   score:        number;
   level:        number;
   hasNextLevel: boolean;
+  stats:        LevelStats | null;
   onNext:       () => void;
   onMenu:       () => void;
 }
 
-export default function Victory({ score, level, hasNextLevel, onNext, onMenu }: Props) {
+function fmtTime(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+export default function Victory({ score, level, hasNextLevel, stats, onNext, onMenu }: Props) {
   return (
     <div className={styles.overlay}>
       <div className={styles.card}>
@@ -19,6 +27,10 @@ export default function Victory({ score, level, hasNextLevel, onNext, onMenu }: 
 
         <h2 className={styles.title}>¡Victoria!</h2>
         <p className={styles.subtitle}>¡Nivel {level} completado!</p>
+
+        {stats?.isHighScore && (
+          <div className={styles.highScore}>🏅 ¡Nuevo Récord!</div>
+        )}
 
         <div className={styles.stats}>
           <div className={styles.stat}>
@@ -33,6 +45,14 @@ export default function Victory({ score, level, hasNextLevel, onNext, onMenu }: 
             </span>
           </div>
         </div>
+
+        {stats && (
+          <div className={styles.detailStats}>
+            <span>⏱ {fmtTime(stats.timeSeconds)}</span>
+            <span>💀 {stats.enemiesKilled} enemigos</span>
+            <span>🎯 {stats.coinsCollected} monedas</span>
+          </div>
+        )}
 
         <div className={styles.buttons}>
           {hasNextLevel ? (

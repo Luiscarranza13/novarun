@@ -1,13 +1,13 @@
 import { TileType } from "@/types/game";
 import { resolveCollisions } from "@/game/physics/collision";
+import { Projectile } from "./Projectile";
 import { drawZubat, drawGeodude, drawKoffing } from "@/game/rendering/sprites";
 
-export type EnemyType = "basic" | "jumper";
+export type EnemyType = "basic" | "jumper" | "shooter";
 
 const GRAVITY    = 0.55;
 const MAX_FALL   = 14;
 
-// Visual type assigned based on spawn sequence for variety
 let _enemyCounter = 0;
 type EnemyVisual = "zubat" | "geodude" | "koffing";
 
@@ -29,11 +29,15 @@ export class Enemy {
   patrolLeft:  number;
   patrolRight: number;
 
+  pendingProjectile: Projectile | null = null;
+
   private jumpCooldown: number;
   private jumpInterval: number;
   private hurtTimer  = 0;
   private deathTimer = 0;
   private animFrame  = 0;
+  private shootCooldown = 0;
+  private shootInterval: number;
   facingRight = false;
 
   constructor(
@@ -44,9 +48,17 @@ export class Enemy {
     this.type   = type;
     this.x      = tileX * TILE_SIZE;
     this.y      = tileY * TILE_SIZE - this.height;
-    this.vx     = type === "basic" ? -1.6 : -1.2;
-    this.damage = type === "basic" ? 15 : 22;
-    this.hp = this.maxHp = type === "basic" ? 30 : 45;
+    this.damage = type === "basic" ? 15 : type === "jumper" ? 22 : 10;
+    this.hp = this.maxHp = type === "basic" ? 30 : type === "jumper" ? 45 : 55;
+
+    if (type === "shooter") {
+      this.vx = 0;  // stands still
+      this.shootInterval = 130 + Math.floor(Math.random() * 60);
+      this.shootCooldown = Math.floor(Math.random() * this.shootInterval);
+    } else {
+      this.vx = type === "basic" ? -1.6 : -1.2;
+      this.shootInterval = 0;
+    }
 
     this.patrolLeft  = (tileX - patrolRange) * TILE_SIZE;
     this.patrolRight = (tileX + patrolRange) * TILE_SIZE;
@@ -54,17 +66,17 @@ export class Enemy {
     this.jumpInterval = 80 + Math.floor(Math.random() * 60);
     this.jumpCooldown = Math.floor(Math.random() * this.jumpInterval);
 
-    // Assign visual type in rotation
     const v = _enemyCounter++ % 3;
     this.visual = v === 0 ? "zubat" : v === 1 ? "geodude" : "koffing";
-    // Jumpers are always geodude (bouncy rock)
     if (type === "jumper") this.visual = "geodude";
+    if (type === "shooter") this.visual = "koffing";
   }
 
-  update(tiles: TileType[][], TILE_SIZE: number) {
+  update(tiles: TileType[][], TILE_SIZE: number, playerX = 0, playerY = 0) {
     if (this.dead) { if (this.deathTimer < 24) this.deathTimer++; return; }
     this.animFrame++;
     if (this.hurtTimer > 0) this.hurtTimer--;
+    this.pendingProjectile = null;
 
     this.vy = Math.min(this.vy + GRAVITY, MAX_FALL);
 
@@ -77,17 +89,39 @@ export class Enemy {
       }
     }
 
+    if (this.type === "shooter") {
+      // Face player
+      this.facingRight = playerX > this.x;
+      if (this.shootCooldown <= 0) {
+        const dir = this.facingRight ? 1 : -1;
+        const dy  = (playerY - this.y) / Math.max(1, Math.abs(playerX - this.x));
+        this.pendingProjectile = new Projectile({
+          x: this.x + (this.facingRight ? this.width : -14),
+          y: this.y + this.height / 2 - 7,
+          vx: dir * 5,
+          vy: Math.max(-3, Math.min(3, dy * 4)),
+          type: "rock",
+          damage: this.damage,
+          color: "#AA7744",
+        });
+        this.shootCooldown = this.shootInterval;
+      } else {
+        this.shootCooldown--;
+      }
+    }
+
     const res = resolveCollisions(
       this.x, this.y, this.width, this.height,
       this.vx, this.vy, tiles, TILE_SIZE
     );
     this.x = res.x; this.y = res.y; this.vy = res.vy;
 
-    // Patrol reversal
-    if (this.x <= this.patrolLeft || res.vx === 0) {
-      this.vx = Math.abs(this.vx); this.facingRight = true;
-    } else if (this.x + this.width >= this.patrolRight) {
-      this.vx = -Math.abs(this.vx); this.facingRight = false;
+    if (this.type !== "shooter") {
+      if (this.x <= this.patrolLeft || res.vx === 0) {
+        this.vx = Math.abs(this.vx); this.facingRight = true;
+      } else if (this.x + this.width >= this.patrolRight) {
+        this.vx = -Math.abs(this.vx); this.facingRight = false;
+      }
     }
   }
 
@@ -109,6 +143,12 @@ export class Enemy {
 
     const hurt = this.hurtTimer > 0;
 
+    // Shooter: draw with warning glow when about to fire
+    if (this.type === "shooter" && this.shootCooldown < 30) {
+      ctx.shadowBlur  = 12 + (30 - this.shootCooldown) * 0.5;
+      ctx.shadowColor = "#FF8800";
+    }
+
     if (this.visual === "zubat") {
       drawZubat(ctx, sx, sy, this.width, this.height, this.facingRight, this.animFrame, hurt);
     } else if (this.visual === "geodude") {
@@ -117,7 +157,8 @@ export class Enemy {
       drawKoffing(ctx, sx, sy, this.width, this.height, this.animFrame, hurt);
     }
 
-    // HP bar
+    ctx.shadowBlur = 0;
+
     if (!this.dead && this.hp < this.maxHp) {
       const bw = this.width - 4;
       ctx.fillStyle = "#330000";

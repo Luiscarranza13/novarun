@@ -48,6 +48,9 @@ export class Player {
   private dashTimer      = 0;
   private hurtTimer      = 0;
 
+  starTimer   = 0;  // rainbow invincibility power-up
+  speedTimer  = 0;  // speed boost power-up
+
   private prevOnGround = false;
 
   creature: CreatureData;
@@ -68,7 +71,17 @@ export class Player {
     this.canDoubleJump = creature.stats.canDoubleJump;
   }
 
-  get invincible() { return this.invincibleTimer > 0 || this.shieldTimer > 0; }
+  get invincible() { return this.invincibleTimer > 0 || this.shieldTimer > 0 || this.starTimer > 0; }
+
+  activateStar() {
+    this.starTimer = 300;
+    sfx.powerup();
+  }
+
+  activateSpeed() {
+    this.speedTimer = 240;
+    sfx.powerup();
+  }
 
   heal(amount: number) { this.hp = Math.min(this.hp + amount, this.maxHp); }
 
@@ -105,14 +118,16 @@ export class Player {
     if (this.shieldTimer    > 0) this.shieldTimer--;
     if (this.dashTimer      > 0) this.dashTimer--;
     if (this.hurtTimer      > 0) this.hurtTimer--;
+    if (this.starTimer      > 0) this.starTimer--;
+    if (this.speedTimer     > 0) this.speedTimer--;
   }
 
   private handleMovement(input: InputState) {
     if (this.dashTimer > 0) return;
-    // Gengar: 25% speed boost while airborne (ghost flight)
     const airBoost = (this.creature.id === "gengar" && !this.onGround) ? 1.25 : 1;
-    if (input.left)        { this.vx = -this.speed * airBoost; this.facingRight = false; }
-    else if (input.right)  { this.vx =  this.speed * airBoost; this.facingRight = true;  }
+    const speedBoost = this.speedTimer > 0 ? 1.65 : 1;
+    if (input.left)        { this.vx = -this.speed * airBoost * speedBoost; this.facingRight = false; }
+    else if (input.right)  { this.vx =  this.speed * airBoost * speedBoost; this.facingRight = true;  }
     else                   { this.vx *= 0.75; if (Math.abs(this.vx) < 0.2) this.vx = 0; }
   }
 
@@ -283,8 +298,24 @@ export class Player {
 
     ctx.save();
 
-    // Invincibility flicker
-    if (this.invincibleTimer > 0 && !this.shieldTimer) {
+    // Star power: rainbow glow aura
+    if (this.starTimer > 0) {
+      const hue = (Date.now() / 8) % 360;
+      ctx.shadowBlur  = 22;
+      ctx.shadowColor = `hsl(${hue},100%,60%)`;
+      ctx.strokeStyle = `hsl(${hue},100%,60%)`;
+      ctx.lineWidth   = 3;
+      ctx.strokeRect(sx - 2, sy - 2, this.width + 4, this.height + 4);
+    }
+
+    // Speed boost: cyan glow
+    if (this.speedTimer > 0 && this.starTimer === 0) {
+      ctx.shadowBlur  = 14;
+      ctx.shadowColor = "#00FFEE";
+    }
+
+    // Invincibility flicker (not during star or shield)
+    if (this.invincibleTimer > 0 && !this.shieldTimer && this.starTimer === 0) {
       ctx.globalAlpha = 0.72;
     }
 

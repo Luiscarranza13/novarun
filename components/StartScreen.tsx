@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { drawPikachu, drawCharizard, drawBulbasaur, drawSquirtle, drawMewtwo, drawGengar, drawEevee } from "@/game/rendering/sprites";
+import { getAllHighScores } from "@/game/saveSystem";
+
+const LEVEL_NAMES = ["Ruta 1", "Monte Luna", "Islas Espuma"];
 
 const SHOWCASE = [
   { id: "pikachu",   color: "#FFD700", name: "Pikachu",   type: "Eléctrico" },
@@ -18,11 +21,13 @@ const DRAW_FNS = { pikachu: drawPikachu, charizard: drawCharizard, bulbasaur: dr
 interface Props { onPlay: () => void; onAbout: () => void; }
 
 export default function StartScreen({ onPlay, onAbout }: Props) {
-  const [pulse, setPulse] = useState(false);
-  const [hovIdx, setHovIdx] = useState<number | null>(null);
+  const [pulse,    setPulse]    = useState(false);
+  const [hovIdx,   setHovIdx]   = useState<number | null>(null);
+  const [hiScores, setHiScores] = useState<number[]>([0, 0, 0]);
 
   useEffect(() => {
     const id = setInterval(() => setPulse((p) => !p), 700);
+    setHiScores(getAllHighScores());
     return () => clearInterval(id);
   }, []);
 
@@ -94,6 +99,24 @@ export default function StartScreen({ onPlay, onAbout }: Props) {
         style={{ color: "#ccc" }}>
         Cómo jugar
       </button>
+
+      {/* High scores panel */}
+      {hiScores.some((s) => s > 0) && (
+        <div className="mt-4 flex gap-4 text-xs text-white/45">
+          {hiScores.map((s, i) =>
+            s > 0 ? (
+              <div key={i} className="flex flex-col items-center gap-0.5">
+                <span className="text-[9px] tracking-widest text-yellow-400/55 uppercase">
+                  {LEVEL_NAMES[i]}
+                </span>
+                <span className="font-black text-yellow-400">
+                  {s.toString().padStart(5, "0")}
+                </span>
+              </div>
+            ) : null
+          )}
+        </div>
+      )}
 
       {/* Controls hint */}
       <div className="absolute bottom-4 flex gap-6 text-xs opacity-30" style={{ color: "#ccc" }}>

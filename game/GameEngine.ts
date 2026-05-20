@@ -1,4 +1,4 @@
-import { CreatureData, GameState, HUDState } from "@/types/game";
+import { CreatureData, GameState, HUDState, LevelStats } from "@/types/game";
 import { LEVELS, TILE_SIZE } from "@/game/data/levels";
 import { Player } from "@/game/entities/Player";
 import { Enemy } from "@/game/entities/Enemy";
@@ -6,10 +6,12 @@ import { Collectible } from "@/game/entities/Collectible";
 import { Projectile } from "@/game/entities/Projectile";
 import { aabbOverlap } from "@/game/physics/collision";
 import { sfx } from "@/game/SoundEngine";
+import { saveHighScore } from "@/game/saveSystem";
 
 export interface GameCallbacks {
   onStateChange: (state: GameState) => void;
   onHUDUpdate:   (hud: HUDState) => void;
+  onStatsReady?: (stats: LevelStats) => void;
 }
 
 // ─── Particle ──────────────────────────────────────────────────────────────────
@@ -76,9 +78,20 @@ export class GameEngine {
   private ctx:    CanvasRenderingContext2D;
   private animId = 0;
 
-  // FIX: halted flag prevents multiple onStateChange calls and RAF after end-state
   private halted     = false;
+  private paused     = false;
   private frameCount = 0;
+
+  // Level stats tracking
+  private levelStartTime  = 0;
+  private enemiesKilled   = 0;
+  private coinsCollected  = 0;
+
+  // Enemy projectiles (separate from player projectiles)
+  private enemyProjectiles: Projectile[] = [];
+
+  // Gamepad state for edge detection
+  private gpPrev = { jump: false, attack: false, special: false };
 
   private player:       Player | null = null;
   private enemies:      Enemy[] = [];
@@ -113,16 +126,21 @@ export class GameEngine {
   // ── Public ────────────────────────────────────────────────────────────────────
 
   startLevel(creature: CreatureData, levelIndex: number) {
-    this.halted      = false;   // FIX: reset halted so the loop can run again
-    this.frameCount  = 0;
-    this.creature    = creature;
-    this.levelIndex  = levelIndex;
-    this.score       = 0;
-    this.cameraX     = 0;
-    this.particles   = [];
-    this.popups      = [];
-    this.shakeAmount = 0;
+    this.halted          = false;
+    this.paused          = false;
+    this.frameCount      = 0;
+    this.creature        = creature;
+    this.levelIndex      = levelIndex;
+    this.score           = 0;
+    this.cameraX         = 0;
+    this.particles       = [];
+    this.popups          = [];
+    this.shakeAmount     = 0;
     this.levelAnnounceTimer = 130;
+    this.levelStartTime  = Date.now();
+    this.enemiesKilled   = 0;
+    this.coinsCollected  = 0;
+    this.enemyProjectiles = [];
 
     const level = LEVELS[levelIndex];
     if (!level) return;
@@ -141,6 +159,12 @@ export class GameEngine {
       ),
       ...level.heartTiles.map(
         (t) => new Collectible(t.x * TILE_SIZE + 9, t.y * TILE_SIZE + 9, "heart")
+      ),
+      ...(level.starTiles ?? []).map(
+        (t) => new Collectible(t.x * TILE_SIZE + 9, t.y * TILE_SIZE + 9, "star")
+      ),
+      ...(level.speedTiles ?? []).map(
+        (t) => new Collectible(t.x * TILE_SIZE + 9, t.y * TILE_SIZE + 9, "speed")
       ),
     ];
 
@@ -174,9 +198,23 @@ export class GameEngine {
     this.pulseSpecial = true;
   }
 
-  // FIX: stop() halts the RAF loop — called by useGameEngine before navigating away
+  pause() {
+    if (this.halted || this.paused) return;
+    this.paused = true;
+    cancelAnimationFrame(this.animId);
+    this.callbacks.onStateChange("paused");
+  }
+
+  resume() {
+    if (this.halted || !this.paused) return;
+    this.paused = false;
+    this.callbacks.onStateChange("playing");
+    this.loop();
+  }
+
   stop() {
     this.halted = true;
+    this.paused = false;
     cancelAnimationFrame(this.animId);
     sfx.stopBGM();
   }
@@ -198,6 +236,29 @@ export class GameEngine {
 
   // ── Update ────────────────────────────────────────────────────────────────────
 
+  private pollGamepad() {
+    const pads = navigator.getGamepads?.() ?? [];
+    for (const pad of pads) {
+      if (!pad) continue;
+      const left    = pad.buttons[14]?.pressed || pad.axes[0] < -0.4;
+      const right   = pad.buttons[15]?.pressed || pad.axes[0] > 0.4;
+      const jump    = pad.buttons[0]?.pressed ?? false;
+      const attack  = pad.buttons[2]?.pressed ?? false;
+      const special = pad.buttons[1]?.pressed ?? false;
+
+      if (left)  this.heldKeys.add("ArrowLeft");  else this.heldKeys.delete("ArrowLeft");
+      if (right) this.heldKeys.add("ArrowRight"); else this.heldKeys.delete("ArrowRight");
+      if (jump)  this.heldKeys.add("ArrowUp");    else this.heldKeys.delete("ArrowUp");
+
+      if (jump   && !this.gpPrev.jump)    this.pulseJump    = true;
+      if (attack && !this.gpPrev.attack)  this.pulseAttack  = true;
+      if (special && !this.gpPrev.special) this.pulseSpecial = true;
+
+      this.gpPrev = { jump, attack, special };
+      break;
+    }
+  }
+
   private update() {
     const p     = this.player;
     const level = LEVELS[this.levelIndex];
@@ -208,6 +269,8 @@ export class GameEngine {
 
     this.shakeAmount = 0;
     this.shakeX = this.shakeY = 0;
+
+    this.pollGamepad();
 
     // Input
     const h = this.heldKeys;
@@ -243,7 +306,12 @@ export class GameEngine {
 
     // Enemies
     for (const enemy of this.enemies) {
-      enemy.update(level.tiles, TILE_SIZE);
+      enemy.update(level.tiles, TILE_SIZE, p.x, p.y);
+      // Collect shooter projectiles
+      if (enemy.pendingProjectile) {
+        this.enemyProjectiles.push(enemy.pendingProjectile);
+        enemy.pendingProjectile = null;
+      }
       if (enemy.dead) continue;
 
       // Melee attack box
@@ -255,6 +323,7 @@ export class GameEngine {
           if (!enemy.dead) {
             enemy.takeDamage(p.creature.stats.attack);
             this.burst(enemy.x + 16, enemy.y + 16, "#FF8C00", 6);
+            if (enemy.dead) this.enemiesKilled++;
           }
         }
       }
@@ -269,6 +338,7 @@ export class GameEngine {
           if (proj.type !== "shadow" && proj.type !== "psychic") proj.active = false;
           if (enemy.dead) {
             this.score += 200;
+            this.enemiesKilled++;
             this.addPopup(enemy.x + 16, enemy.y, "+200", "#FFD700");
           }
         }
@@ -281,10 +351,11 @@ export class GameEngine {
           const stomp = p.vy > 1 && p.y + p.height < enemy.y + 14;
           if (stomp) {
             enemy.takeDamage(999);
+            if (enemy.dead) this.enemiesKilled++;
             p.vy = -9;
             this.burst(enemy.x + 16, enemy.y, "#FFD700", 10);
             this.score += 300;
-            this.addPopup(enemy.x + 16, enemy.y - 10, "+300 ✦", "#FFD700");
+            this.addPopup(enemy.x + 16, enemy.y - 10, "+300", "#FFD700");
             sfx.stomp();
           } else {
             p.takeDamage(enemy.damage);
@@ -304,6 +375,20 @@ export class GameEngine {
       }
     }
 
+    // Enemy projectiles — update and check vs player
+    this.enemyProjectiles = this.enemyProjectiles.filter((proj) => {
+      proj.update(level.tiles, TILE_SIZE);
+      if (!proj.active) return false;
+      if (!p.invincible && aabbOverlap(proj.x, proj.y, proj.width, proj.height,
+                                       p.x + 4, p.y + 4, p.width - 8, p.height - 8)) {
+        p.takeDamage(proj.damage);
+        this.shake(6);
+        this.burst(proj.x, proj.y, proj.color, 5);
+        return false;
+      }
+      return true;
+    });
+
     // Collectibles
     for (const col of this.collectibles) {
       if (col.collected) continue;
@@ -313,14 +398,23 @@ export class GameEngine {
         col.collected = true;
         if (col.type === "coin") {
           this.score += 10;
+          this.coinsCollected++;
           this.burst(col.x + 11, col.y, "#FF4444", 6);
           this.addPopup(col.x + 11, col.y, "+10", "#FF6666");
           sfx.coin();
-        } else {
+        } else if (col.type === "heart") {
           p.heal(25);
           this.burst(col.x + 11, col.y, "#FF69B4", 10);
           this.addPopup(col.x + 11, col.y, "+25 HP", "#FF88AA");
           sfx.heart();
+        } else if (col.type === "star") {
+          p.activateStar();
+          this.burst(col.x + 11, col.y, "#FFD700", 16);
+          this.addPopup(col.x + 11, col.y, "ESTRELLA!", "#FFD700");
+        } else if (col.type === "speed") {
+          p.activateSpeed();
+          this.burst(col.x + 11, col.y, "#00FFEE", 12);
+          this.addPopup(col.x + 11, col.y, "RAPIDO!", "#00FFEE");
         }
       }
     }
@@ -328,18 +422,23 @@ export class GameEngine {
     // Passive creature aura effects
     this.spawnPassiveEffects(p);
 
-    // FIX: X-axis-only goal check — player just needs to reach the pole's x
     const goalPoleX = level.goalTile.x * TILE_SIZE + TILE_SIZE / 2;
     if (p.x + p.width >= goalPoleX - 16) {
       this.halted = true;
       cancelAnimationFrame(this.animId);
       sfx.stopBGM();
       sfx.victory();
+      const isHighScore = saveHighScore(this.levelIndex, this.score);
+      this.callbacks.onStatsReady?.({
+        timeSeconds:    Math.floor((Date.now() - this.levelStartTime) / 1000),
+        enemiesKilled:  this.enemiesKilled,
+        coinsCollected: this.coinsCollected,
+        isHighScore,
+      });
       this.callbacks.onStateChange("victory");
       return;
     }
 
-    // FIX: Death check with halted guard — prevents firing after victory
     if (p.hp <= 0 || p.y > this.canvas.height + 120) {
       this.halted = true;
       cancelAnimationFrame(this.animId);
@@ -541,7 +640,8 @@ export class GameEngine {
     // Entities - Use integer coordinates relative to camera
     for (const col of this.collectibles) if (!col.collected) col.draw(ctx, camX);
     for (const e of this.enemies)        e.draw(ctx, camX);
-    for (const proj of this.projectiles) if (proj.active) proj.draw(ctx, camX);
+    for (const proj of this.projectiles)      if (proj.active) proj.draw(ctx, camX);
+    for (const proj of this.enemyProjectiles) if (proj.active) proj.draw(ctx, camX);
     for (const pt of this.particles)     pt.draw(ctx, camX);
 
     this.renderGoal(ctx, level, camX);

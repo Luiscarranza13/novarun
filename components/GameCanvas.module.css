@@ -29,6 +29,29 @@
   background: linear-gradient(160deg, #0d0026, #1a0533, #0d1b2a);
 }
 
+.pauseBtn {
+  position: absolute;
+  top: 10px;
+  right: 86px;
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  pointer-events: all;
+}
+
+.pauseBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .muteBtn {
   position: absolute;
   top: 10px;
