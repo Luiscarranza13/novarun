@@ -7,7 +7,7 @@ import { CreatureData } from "@/types/game";
 import { LEVELS } from "@/game/data/levels";
 import { sfx } from "@/game/SoundEngine";
 
-import { normalizeVoiceText, getMovementVoiceKey, isSpecialVoiceCommand } from "@/game/voiceUtils";
+import { classifyVoiceCommand, VOICE_GRAMMAR } from "@/game/voiceUtils";
 import StartScreen     from "./StartScreen";
 import CharacterSelect from "./CharacterSelect";
 import HUD             from "./HUD";
@@ -16,9 +16,6 @@ import Victory         from "./Victory";
 import PauseMenu       from "./PauseMenu";
 import HowToPlay       from "./HowToPlay";
 import styles          from "./GameCanvas.module.css";
-
-// suppress unused import warning — normalizeVoiceText is used in VoiceSpecialButton
-void normalizeVoiceText;
 
 const CANVAS_W = 800;
 const CANVAS_H = 480;
@@ -209,15 +206,6 @@ export default function GameCanvas() {
     else pauseGameMusic();
   }, [pauseGameMusic, playGameMusic]);
 
-  // Voice action forwarder (used by VoiceSpecialButton)
-  const triggerVoiceAction = useCallback(
-    (key: string, duration: number) => {
-      // Access engine via hook's pressControl/releaseControl
-      pressControl(key);
-      window.setTimeout(() => releaseControl(key), duration);
-    },
-    [pressControl, releaseControl]
-  );
 
   return (
     <div className={styles.root}>
@@ -312,9 +300,9 @@ export default function GameCanvas() {
 
       {gameState === "playing" && (
         <VoiceSpecialButton
-          onSpecial={() => { /* triggerSpecial via engine */ }}
-          onAction={triggerVoiceAction}
           triggerSpecial={triggerSpecial}
+          onPress={pressControl}
+          onRelease={releaseControl}
         />
       )}
       {gameState === "playing" && (
@@ -440,88 +428,166 @@ declare global {
   }
 }
 
-function VoiceSpecialButton({
-  onSpecial,
-  onAction,
-  triggerSpecial,
-}: {
-  onSpecial: () => void;
-  onAction: (key: string, duration: number) => void;
-  triggerSpecial: () => void;
-}) {
-  void onSpecial;
-  const recognitionRef   = useRef<SpeechRecognition | null>(null);
-  const enabledRef       = useRef(false);
-  const lastTriggerRef   = useRef(0);
-  const lastIndexRef     = useRef(-1);
-  const restartTimerRef  = useRef<number | null>(null);
+// ── Cooldowns per command type (ms) ──────────────────────────────────────────
+const CD_JUMP    = 350;   // prevent double-jump from echo
+const CD_SPECIAL = 600;   // prevent double special
+const DIR_HOLD   = 1400;  // ms to hold direction before auto-release (silence)
 
-  const [enabled, setEnabled] = useState(false);
-  const [heard,   setHeard]   = useState("");
-  const [status,  setStatus]  = useState<"idle" | "listening" | "heard" | "unsupported" | "blocked">("idle");
+function VoiceSpecialButton({
+  triggerSpecial,
+  onPress,
+  onRelease,
+}: {
+  triggerSpecial: () => void;
+  onPress:  (key: string) => void;
+  onRelease: (key: string) => void;
+}) {
+  const recognitionRef  = useRef<SpeechRecognition | null>(null);
+  const enabledRef      = useRef(false);
+  const restartTimerRef = useRef<number | null>(null);
+  const lastIndexRef    = useRef(-1);
+
+  // Per-command cooldown timestamps
+  const cdRef = useRef<Record<string, number>>({});
+
+  // Stateful direction tracking
+  const currentDirRef  = useRef<string | null>(null);
+  const dirTimerRef    = useRef<number | null>(null);
+
+  const [enabled,    setEnabled]    = useState(false);
+  const [heard,      setHeard]      = useState("");
+  const [activeDir,  setActiveDir]  = useState<"left" | "right" | null>(null);
+  const [status,     setStatus]     = useState<
+    "idle" | "listening" | "heard" | "unsupported" | "blocked"
+  >("idle");
+
+  // ── Direction helpers ───────────────────────────────────────────────────────
+
+  const releaseDirKey = useCallback((key: string) => {
+    onRelease(key);
+    if (currentDirRef.current === key) {
+      currentDirRef.current = null;
+      setActiveDir(null);
+    }
+  }, [onRelease]);
+
+  const pressDirKey = useCallback((key: string) => {
+    // Release the opposite direction if held
+    if (currentDirRef.current && currentDirRef.current !== key) {
+      onRelease(currentDirRef.current);
+    }
+    currentDirRef.current = key;
+    setActiveDir(key === "ArrowLeft" ? "left" : "right");
+    onPress(key);
+
+    // Reset auto-release timer — saying the same word again keeps you moving
+    if (dirTimerRef.current) clearTimeout(dirTimerRef.current);
+    dirTimerRef.current = window.setTimeout(() => releaseDirKey(key), DIR_HOLD);
+  }, [onPress, onRelease, releaseDirKey]);
+
+  const stopMoving = useCallback(() => {
+    if (dirTimerRef.current) { clearTimeout(dirTimerRef.current); dirTimerRef.current = null; }
+    if (currentDirRef.current) { onRelease(currentDirRef.current); currentDirRef.current = null; }
+    setActiveDir(null);
+  }, [onRelease]);
+
+  // ── Command dispatcher ──────────────────────────────────────────────────────
+
+  const dispatch = useCallback((transcript: string) => {
+    const cmd = classifyVoiceCommand(transcript);
+    if (!cmd) return null;
+
+    const now = Date.now();
+
+    if (cmd === "left")  { pressDirKey("ArrowLeft");  return "izquierda"; }
+    if (cmd === "right") { pressDirKey("ArrowRight"); return "derecha"; }
+
+    if (cmd === "stop") { stopMoving(); return "para"; }
+
+    if (cmd === "jump") {
+      if (now - (cdRef.current.jump ?? 0) < CD_JUMP) return null;
+      cdRef.current.jump = now;
+      onPress("ArrowUp");
+      window.setTimeout(() => onRelease("ArrowUp"), 200);
+      return "salta";
+    }
+
+    if (cmd === "special") {
+      if (now - (cdRef.current.special ?? 0) < CD_SPECIAL) return null;
+      cdRef.current.special = now;
+      triggerSpecial();
+      return "especial";
+    }
+
+    return null;
+  }, [pressDirKey, stopMoving, onPress, onRelease, triggerSpecial]);
+
+  // ── Speech recognition setup ────────────────────────────────────────────────
 
   const stopListening = useCallback(() => {
     enabledRef.current = false;
-    if (restartTimerRef.current !== null) {
-      window.clearTimeout(restartTimerRef.current);
-      restartTimerRef.current = null;
-    }
+    if (restartTimerRef.current !== null) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+    stopMoving();
     setEnabled(false);
     setStatus("idle");
     setHeard("");
     try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-  }, []);
+  }, [stopMoving]);
 
   const startListening = useCallback(() => {
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     const GrammarList = window.SpeechGrammarList ?? window.webkitSpeechGrammarList;
-
     if (!Recognition) { setStatus("unsupported"); return; }
 
     const recognition = new Recognition();
 
+    // Bias the model toward our vocabulary
     if (GrammarList) {
-      const grammar = "#JSGF V1.0; grammar commands; public <command> = uno | dos | tres | cuatro | 1 | 2 | 3 | 4 | izquierda | derecha | salta | saltar | habilidad | especial | poder | ataque | fuego | trueno | magia | arriba | sube | avanza | retrocede ;";
-      const list = new GrammarList();
-      list.addFromString(grammar, 1);
-      recognition.grammars = list;
+      try {
+        const list = new GrammarList();
+        list.addFromString(VOICE_GRAMMAR, 1);
+        recognition.grammars = list;
+      } catch { /* not critical */ }
     }
 
     recognition.continuous      = true;
-    recognition.interimResults  = true;
-    recognition.maxAlternatives = 1;
+    recognition.interimResults  = true;  // catch words as they form
+    recognition.maxAlternatives = 3;     // check up to 3 hypotheses
     recognition.lang = "es-ES";
 
     recognition.onresult = (event) => {
-      const now = Date.now();
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result     = event.results[i];
-        const transcript = result[0].transcript.toLowerCase().trim();
-        if (!transcript) continue;
-        if (i <= lastIndexRef.current && !result.isFinal) continue;
+        const result  = event.results[i];
+        const isFinal = result.isFinal;
 
-        const moveKey = getMovementVoiceKey(transcript);
-        const special = isSpecialVoiceCommand(transcript);
+        // For direction commands: act on interim results (faster response)
+        // For special: wait for final result (avoids false positives)
+        if (!isFinal && i <= lastIndexRef.current) continue;
 
-        if (moveKey || special) {
-          if (now - lastTriggerRef.current < 400) continue;
-          lastTriggerRef.current = now;
-          lastIndexRef.current   = i;
+        // Check all alternatives the browser suggests
+        let fired: string | null = null;
+        for (let a = 0; a < result.length && !fired; a++) {
+          const transcript = result[a].transcript.toLowerCase().trim();
+          if (!transcript) continue;
 
-          const word = transcript.split(" ").pop() || transcript;
-          setHeard(word.substring(0, 10));
-          setStatus("heard");
-
-          if (moveKey) {
-            const duration = moveKey === "ArrowUp" ? 250 : 800;
-            onAction(moveKey, duration);
-          } else {
-            triggerSpecial();
+          // Direction / jump / stop: fire on interim for lowest latency
+          const cmd = classifyVoiceCommand(transcript);
+          if (cmd === "left" || cmd === "right" || cmd === "jump" || cmd === "stop") {
+            fired = dispatch(transcript);
           }
+          // Special: only on final result
+          if (cmd === "special" && isFinal) {
+            fired = dispatch(transcript);
+          }
+        }
 
+        if (fired) {
+          if (isFinal) lastIndexRef.current = i;
+          setHeard(fired);
+          setStatus("heard");
           window.setTimeout(() => {
-            if (enabledRef.current) { setStatus("listening"); setHeard(""); }
-          }, 900);
+            if (enabledRef.current) setStatus("listening");
+          }, 700);
           break;
         }
       }
@@ -536,39 +602,47 @@ function VoiceSpecialButton({
         setStatus("blocked");
         return;
       }
+      // Any other error: keep trying
       if (enabledRef.current) setStatus("listening");
     };
 
     recognition.onend = () => {
       if (!enabledRef.current) return;
+      // Auto-restart after short pause (browser stops after silence)
       restartTimerRef.current = window.setTimeout(() => {
         if (!enabledRef.current) return;
-        try { recognition.start(); } catch { setStatus("listening"); }
-      }, 300);
+        try { recognition.start(); } catch { /* already started */ }
+      }, 200);
     };
 
     recognitionRef.current = recognition;
     enabledRef.current     = true;
-    setEnabled(true);
     lastIndexRef.current   = -1;
+    setEnabled(true);
     setStatus("listening");
     try { recognition.start(); } catch { setStatus("listening"); }
-  }, [onAction, triggerSpecial]);
+  }, [dispatch, stopListening]);
 
-  useEffect(() => stopListening, [stopListening]);
+  // Clean up on unmount / game state change
+  useEffect(() => () => stopListening(), [stopListening]);
+
+  // ── UI ───────────────────────────────────────────────────────────────────────
+
+  const dirLabel = activeDir === "left" ? "◀" : activeDir === "right" ? "▶" : null;
 
   const label =
     status === "unsupported" ? "Voz no disponible" :
     status === "blocked"     ? "Permite microfono" :
     status === "heard"       ? `¡${heard}!` :
+    dirLabel                 ? `Mov ${dirLabel}` :
     enabled                  ? "Voz activa" : "Voz";
 
   return (
     <button
       type="button"
       onClick={enabled ? stopListening : startListening}
-      className={`${styles.voiceBtn} ${enabled ? styles.voiceBtnActive : ""}`}
-      title="Activa el microfono y di: derecha, izquierda, salta o habilidad"
+      className={`${styles.voiceBtn} ${enabled ? styles.voiceBtnActive : ""} ${activeDir ? styles.voiceBtnMoving : ""}`}
+      title="Di: derecha, izquierda, salta, para, o habilidad"
     >
       <span className={styles.voiceDot} />
       <span>{label}</span>

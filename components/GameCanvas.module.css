@@ -140,6 +140,12 @@
   background: rgba(20, 70, 115, 0.78);
 }
 
+.voiceBtnMoving {
+  border-color: rgba(68, 255, 140, 0.85) !important;
+  background: rgba(10, 80, 40, 0.85) !important;
+  box-shadow: 0 0 12px rgba(68, 255, 140, 0.5);
+}
+
 .voiceDot {
   width: 8px;
   height: 8px;
