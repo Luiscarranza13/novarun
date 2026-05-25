@@ -41,6 +41,13 @@ export function isLevelCompleted(levelNumber: number): boolean {
   return getHighScore(levelNumber - 1) > 0;
 }
 
+/** Returns true if a level (0-indexed) is available to play.
+ *  Level 0 is always unlocked; level N requires level N-1 to be completed. */
+export function isLevelUnlocked(levelIndex: number): boolean {
+  if (levelIndex === 0) return true;
+  return getHighScore(levelIndex - 1) > 0;
+}
+
 // ─── Achievements ─────────────────────────────────────────────────────────────
 
 export interface AchievementDef {

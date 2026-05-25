@@ -1,30 +1,33 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { drawBulbasaur, drawCharizard, drawEevee, drawGengar, drawMewtwo, drawPikachu, drawSquirtle } from "@/game/rendering/sprites";
+import { drawBulbasaur, drawCharizard, drawEevee, drawGengar, drawHoOh, drawLugia, drawMewtwo, drawPikachu, drawRayquaza, drawSquirtle } from "@/game/rendering/sprites";
 import { getAllHighScores } from "@/game/saveSystem";
 import { Difficulty } from "@/types/game";
 
 const LEVEL_NAMES = ["Ruta 1", "Monte Luna", "Islas Espuma", "Acantilado", "Templo", "Volcan"];
 
 const SHOWCASE = [
-  { id: "pikachu", color: "#FFD700", name: "Pikachu", type: "Electrico" },
+  { id: "pikachu",   color: "#FFD700", name: "Pikachu",   type: "Electrico" },
   { id: "charizard", color: "#FF8C42", name: "Charizard", type: "Fuego/Vuelo" },
-  { id: "bulbasaur", color: "#78C850", name: "Bulbasaur", type: "Planta/Veneno" },
-  { id: "squirtle", color: "#7BBBD4", name: "Squirtle", type: "Agua" },
-  { id: "mewtwo", color: "#9B59B6", name: "Mewtwo", type: "Psiquico" },
-  { id: "gengar", color: "#7B68EE", name: "Gengar", type: "Fantasma" },
-  { id: "eevee", color: "#C8956C", name: "Eevee", type: "Normal" },
+  { id: "lugia",     color: "#88AAFF", name: "Lugia",     type: "Agua/Psiquico" },
+  { id: "mewtwo",    color: "#9B59B6", name: "Mewtwo",    type: "Psiquico" },
+  { id: "hooh",      color: "#FF6600", name: "Ho-Oh",     type: "Fuego/Vuelo" },
+  { id: "rayquaza",  color: "#228B22", name: "Rayquaza",  type: "Dragon/Vuelo" },
+  { id: "gengar",    color: "#7B68EE", name: "Gengar",    type: "Fantasma" },
 ];
 
 const DRAW_FNS = {
-  pikachu: drawPikachu,
+  pikachu:   drawPikachu,
   charizard: drawCharizard,
   bulbasaur: drawBulbasaur,
-  squirtle: drawSquirtle,
-  mewtwo: drawMewtwo,
-  gengar: drawGengar,
-  eevee: drawEevee,
+  squirtle:  drawSquirtle,
+  mewtwo:    drawMewtwo,
+  gengar:    drawGengar,
+  eevee:     drawEevee,
+  lugia:     drawLugia,
+  hooh:      drawHoOh,
+  rayquaza:  drawRayquaza,
 };
 
 const DIFF_LABELS: Record<Difficulty, string> = { easy: "Facil", normal: "Normal", hard: "Dificil" };

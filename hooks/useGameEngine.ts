@@ -112,6 +112,11 @@ export function useGameEngine(
     setGameState("character-select");
   }, []);
 
+  const goToLevelSelect = useCallback(() => {
+    stopEngine(engineRef.current);
+    setGameState("level-select");
+  }, []);
+
   return {
     gameState,
     hud,
@@ -125,5 +130,6 @@ export function useGameEngine(
     resumeGame,
     goToMenu,
     goToCharacterSelect,
+    goToLevelSelect,
   };
 }

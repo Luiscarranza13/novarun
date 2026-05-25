@@ -11,6 +11,7 @@ import { classifyVoiceCommand, VOICE_GRAMMAR } from "@/game/voiceUtils";
 import { ACHIEVEMENT_DEFS, AchievementDef } from "@/game/saveSystem";
 import { Difficulty, AchievementId } from "@/types/game";
 import StartScreen     from "./StartScreen";
+import LevelSelect     from "./LevelSelect";
 import CharacterSelect from "./CharacterSelect";
 import HUD             from "./HUD";
 import GameOver        from "./GameOver";
@@ -61,6 +62,7 @@ export default function GameCanvas() {
     resumeGame,
     goToMenu,
     goToCharacterSelect,
+    goToLevelSelect,
   } = useGameEngine(canvasRef, onAchievement);
 
   const [showHow,        setShowHow]        = useState(false);
@@ -150,13 +152,12 @@ export default function GameCanvas() {
     (creature: CreatureData) => {
       pauseMenuMusic();
       setGameMusicMuted(false);
-      setGameTrackIndex(0);
+      setGameTrackIndex(currentLevel % GAME_TRACKS.length);
       playGameMusic();
       setLastCreature(creature);
-      setCurrentLevel(0);
-      startGame(creature, 0, difficulty);
+      startGame(creature, currentLevel, difficulty);
     },
-    [pauseMenuMusic, playGameMusic, startGame, difficulty]
+    [pauseMenuMusic, playGameMusic, startGame, difficulty, currentLevel]
   );
 
   const handleRetry = useCallback(() => {
@@ -205,7 +206,7 @@ export default function GameCanvas() {
   const isInGame =
     gameState === "playing" || gameState === "paused" ||
     gameState === "game-over" || gameState === "victory";
-  const shouldPlayMenuMusic = gameState === "menu" || gameState === "character-select";
+  const shouldPlayMenuMusic = gameState === "menu" || gameState === "level-select" || gameState === "character-select";
 
   useEffect(() => {
     const audio = menuAudioRef.current;
@@ -297,7 +298,7 @@ export default function GameCanvas() {
 
       {gameState === "menu" && !showHow && !showCredits && (
         <StartScreen
-          onPlay={() => { playMenuMusic(); goToCharacterSelect(); }}
+          onPlay={() => { playMenuMusic(); goToLevelSelect(); }}
           onAbout={() => setShowHow(true)}
           onCredits={() => setShowCredits(true)}
           difficulty={difficulty}
@@ -305,8 +306,15 @@ export default function GameCanvas() {
         />
       )}
 
+      {gameState === "level-select" && (
+        <LevelSelect
+          onSelect={(idx) => { setCurrentLevel(idx); goToCharacterSelect(); }}
+          onBack={goToMenu}
+        />
+      )}
+
       {gameState === "character-select" && (
-        <CharacterSelect onSelect={handleSelect} onBack={goToMenu} />
+        <CharacterSelect onSelect={handleSelect} onBack={goToLevelSelect} />
       )}
 
       {(gameState === "playing" || gameState === "paused") && <HUD hud={hud} visible />}

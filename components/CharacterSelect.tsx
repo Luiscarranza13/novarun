@@ -39,6 +39,9 @@ const PASSIVE_DESC: Record<string, { name: string; desc: string }> = {
   mewtwo:   { name: "Levitar",           desc: "Mantén salto en el aire para reducir la gravedad y flotar más tiempo." },
   gengar:   { name: "Vuelo fantasma",    desc: "En el aire se mueve más rápido y cae más lento que los demás." },
   eevee:    { name: "Adaptación",        desc: "Su barrida especial lo propulsa a gran velocidad, ignorando la fricción." },
+  lugia:    { name: "Barrera Aérea",     desc: "Mantén salto en el aire para planar lentamente con gravedad casi nula." },
+  hooh:     { name: "Llamas Sagradas",   desc: "El doble salto deja una zona de fuego en el suelo que daña a los enemigos." },
+  rayquaza: { name: "Ascenso Vertiginoso", desc: "Velocidad de movimiento incrementada y salto potenciado al máximo." },
 };
 
 const STAT_ROWS = [

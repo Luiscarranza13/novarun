@@ -1,6 +1,7 @@
 import { CreatureData } from "@/types/game";
 
 export const CREATURES: CreatureData[] = [
+  // ── Comunes (siempre disponibles) ─────────────────────────────────────────
   {
     id: "pikachu",
     name: "Pikachu",
@@ -27,6 +28,8 @@ export const CREATURES: CreatureData[] = [
     stats: { maxHp: 85, speed: 6, jumpForce: 12, attack: 8, maxEnergy: 100, canDoubleJump: true },
     colors: { primary: "#C8956C", secondary: "#A87050", accent: "#F5DEB3" },
   },
+
+  // ── Poco comunes (desbloquear con niveles 1-2) ────────────────────────────
   {
     id: "bulbasaur",
     name: "Bulbasaur",
@@ -53,6 +56,8 @@ export const CREATURES: CreatureData[] = [
     stats: { maxHp: 120, speed: 4, jumpForce: 10, attack: 6, maxEnergy: 100, canDoubleJump: false },
     colors: { primary: "#7BBBD4", secondary: "#4488AA", accent: "#AADDFF" },
   },
+
+  // ── Raros (desbloquear con niveles 3-4) ──────────────────────────────────
   {
     id: "charizard",
     name: "Charizard",
@@ -79,17 +84,58 @@ export const CREATURES: CreatureData[] = [
     stats: { maxHp: 75, speed: 7, jumpForce: 13, attack: 9, maxEnergy: 100, canDoubleJump: false },
     colors: { primary: "#7B68EE", secondary: "#5A44C0", accent: "#C580FF" },
   },
+
+  // ── Legendarios (desbloquear con niveles 4-6) ─────────────────────────────
   {
     id: "mewtwo",
     name: "Mewtwo",
     element: "electric",
     rarity: "legendario",
-    unlockLevel: 5,
+    unlockLevel: 4,
     description:
       "Pokémon genéticamente creado. Posee poderes psíquicos sin igual y puede teletransportarse en un instante.",
     specialName: "Psíquico",
     specialDescription: "Teletransporte relámpago con onda de choque que daña a todo en pantalla.",
     stats: { maxHp: 80, speed: 7, jumpForce: 14, attack: 11, maxEnergy: 100, canDoubleJump: false },
     colors: { primary: "#9B59B6", secondary: "#7D3C98", accent: "#C39BD3" },
+  },
+  {
+    id: "lugia",
+    name: "Lugia",
+    element: "water",
+    rarity: "legendario",
+    unlockLevel: 5,
+    description:
+      "Guardián de los mares. Sus alas plateadas pueden desatar tormentas capaces de devastar continentes enteros.",
+    specialName: "Aeroblast",
+    specialDescription: "Dispara un rayo de viento purísimo que barre a todos los enemigos en pantalla.",
+    stats: { maxHp: 100, speed: 6, jumpForce: 14, attack: 10, maxEnergy: 100, canDoubleJump: true },
+    colors: { primary: "#88AAFF", secondary: "#4466CC", accent: "#CCDDFF" },
+  },
+  {
+    id: "hooh",
+    name: "Ho-Oh",
+    element: "fire",
+    rarity: "legendario",
+    unlockLevel: 5,
+    description:
+      "El Fénix del Arcoiris. Quienes lo ven reciben la felicidad eterna. Sus plumas brillan con todos los colores.",
+    specialName: "Fuego Sagrado",
+    specialDescription: "Envuelve el campo en llamas sagradas que queman y dañan a todos los rivales.",
+    stats: { maxHp: 110, speed: 5, jumpForce: 13, attack: 11, maxEnergy: 100, canDoubleJump: true },
+    colors: { primary: "#FF6600", secondary: "#CC2200", accent: "#FFD700" },
+  },
+  {
+    id: "rayquaza",
+    name: "Rayquaza",
+    element: "electric",
+    rarity: "legendario",
+    unlockLevel: 6,
+    description:
+      "Dios del cielo que vive en la capa de ozono. Su poder supera a cualquier ser del mundo Pokémon.",
+    specialName: "Hiperrayo",
+    specialDescription: "Carga una descarga devastadora que destruye todo lo que hay en pantalla.",
+    stats: { maxHp: 95, speed: 8, jumpForce: 15, attack: 12, maxEnergy: 100, canDoubleJump: false },
+    colors: { primary: "#228B22", secondary: "#0A4A0A", accent: "#CCAA00" },
   },
 ];

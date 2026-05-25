@@ -32,6 +32,7 @@ export type AchievementId =
 
 export type GameState =
   | "menu"
+  | "level-select"
   | "character-select"
   | "playing"
   | "paused"

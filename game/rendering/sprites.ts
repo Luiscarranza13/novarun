@@ -729,9 +729,233 @@ export function drawKoffing(
   ctx.restore();
 }
 
+// ─── Lugia ────────────────────────────────────────────────────────────────────
+
+export function drawLugia(
+  ctx: Ctx, x: number, y: number, w: number, h: number,
+  facingRight: boolean, animFrame: number, state: string, hurt: boolean
+) {
+  ctx.save();
+  if (!facingRight) { ctx.translate(x + w, y); ctx.scale(-1, 1); x = 0; y = 0; }
+  else              { ctx.translate(x, y);                        x = 0; y = 0; }
+  if (hurt) ctx.filter = "brightness(10) sepia(1) hue-rotate(0deg) saturate(5)";
+
+  const bob  = state === "walking" ? Math.sin(animFrame * 0.2) * 2 : 0;
+  const flap = Math.sin(animFrame * 0.15) * 4;
+
+  // Left wing
+  ctx.fillStyle = "#C8C8EE";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.45, h * 0.45 + bob);
+  ctx.bezierCurveTo(w * 0.15, h * 0.1 + bob - flap, w * 0.0, h * 0.3 + bob, w * 0.08, h * 0.55 + bob);
+  ctx.bezierCurveTo(w * 0.22, h * 0.58 + bob, w * 0.36, h * 0.53 + bob, w * 0.45, h * 0.50 + bob);
+  ctx.fill();
+
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(w * 0.55, h * 0.45 + bob);
+  ctx.bezierCurveTo(w * 0.85, h * 0.1 + bob - flap, w * 1.0, h * 0.3 + bob, w * 0.92, h * 0.55 + bob);
+  ctx.bezierCurveTo(w * 0.78, h * 0.58 + bob, w * 0.64, h * 0.53 + bob, w * 0.55, h * 0.50 + bob);
+  ctx.fill();
+
+  // Body
+  ellips(ctx, w * 0.5, h * 0.68 + bob, w * 0.26, h * 0.20, "#EEEEFF");
+
+  // Blue belly ridges
+  for (let i = 0; i < 4; i++) {
+    ellips(ctx, w * 0.5, h * (0.58 + i * 0.055) + bob, w * (0.17 - i * 0.02), h * 0.04, `rgba(60,110,190,${0.6 + i * 0.08})`);
+  }
+
+  // Neck
+  ellips(ctx, w * 0.5, h * 0.46 + bob, w * 0.09, h * 0.09, "#EAEAFF");
+
+  // Head
+  circ(ctx, w * 0.5, h * 0.33 + bob, w * 0.13, "#EBEBFF");
+
+  // Blue crest spikes
+  ctx.fillStyle = "#3366AA";
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(w * (0.44 + i * 0.06), h * 0.23 + bob);
+    ctx.lineTo(w * (0.50 + i * 0.04), h * (0.09 + Math.abs(i) * 0.04) + bob);
+    ctx.lineTo(w * (0.56 + i * 0.06), h * 0.23 + bob);
+    ctx.fill();
+  }
+
+  // Eye
+  eye(ctx, w * 0.43, h * 0.31 + bob, w * 0.042, "#002288");
+
+  // Tail (blue-grey)
+  ctx.fillStyle = "#7788BB";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.38, h * 0.83 + bob);
+  ctx.lineTo(w * 0.18, h * 1.03 + bob);
+  ctx.lineTo(w * 0.32, h * 0.89 + bob);
+  ctx.lineTo(w * 0.12, h * 1.07 + bob);
+  ctx.lineTo(w * 0.42, h * 0.87 + bob);
+  ctx.lineTo(w * 0.52, h * 0.84 + bob);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ─── Ho-Oh ────────────────────────────────────────────────────────────────────
+
+export function drawHoOh(
+  ctx: Ctx, x: number, y: number, w: number, h: number,
+  facingRight: boolean, animFrame: number, state: string, hurt: boolean
+) {
+  ctx.save();
+  if (!facingRight) { ctx.translate(x + w, y); ctx.scale(-1, 1); x = 0; y = 0; }
+  else              { ctx.translate(x, y);                        x = 0; y = 0; }
+  if (hurt) ctx.filter = "brightness(10) sepia(1) hue-rotate(0deg) saturate(5)";
+
+  const bob  = state === "walking" ? Math.sin(animFrame * 0.2) * 2 : 0;
+  const flap = Math.sin(animFrame * 0.15) * 5;
+
+  // Rainbow tail feathers
+  const tailCols = ["#FFD700", "#FF8C00", "#FF4500", "#FF0080", "#8B00FF", "#0088FF", "#00CC44"];
+  for (let i = 0; i < tailCols.length; i++) {
+    ctx.fillStyle = tailCols[i];
+    ctx.beginPath();
+    const ox = w * (0.36 + i * 0.04);
+    ctx.moveTo(ox, h * 0.72 + bob);
+    ctx.quadraticCurveTo(ox - w * 0.02, h * (0.86 + i * 0.04) + bob, ox - w * 0.04, h * (0.92 + i * 0.04) + bob);
+    ctx.quadraticCurveTo(ox + w * 0.04, h * (0.88 + i * 0.04) + bob, ox + w * 0.04, h * (0.72 + 0.01 * i) + bob);
+    ctx.fill();
+  }
+
+  // Wings (golden/orange)
+  ctx.fillStyle = "#FF8C00";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.44, h * 0.42 + bob);
+  ctx.bezierCurveTo(w * 0.1, h * 0.08 + bob - flap, w * 0.0, h * 0.32 + bob, w * 0.1, h * 0.56 + bob);
+  ctx.bezierCurveTo(w * 0.25, h * 0.56 + bob, w * 0.38, h * 0.50 + bob, w * 0.44, h * 0.46 + bob);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(w * 0.56, h * 0.42 + bob);
+  ctx.bezierCurveTo(w * 0.9, h * 0.08 + bob - flap, w * 1.0, h * 0.32 + bob, w * 0.9, h * 0.56 + bob);
+  ctx.bezierCurveTo(w * 0.75, h * 0.56 + bob, w * 0.62, h * 0.50 + bob, w * 0.56, h * 0.46 + bob);
+  ctx.fill();
+
+  // Green wing tips
+  ctx.fillStyle = "#22AA44";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.10, h * 0.56 + bob); ctx.lineTo(w * 0.0, h * 0.68 + bob); ctx.lineTo(w * 0.08, h * 0.48 + bob);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(w * 0.90, h * 0.56 + bob); ctx.lineTo(w * 1.0, h * 0.68 + bob); ctx.lineTo(w * 0.92, h * 0.48 + bob);
+  ctx.fill();
+
+  // Body (red)
+  ellips(ctx, w * 0.5, h * 0.62 + bob, w * 0.24, h * 0.18, "#CC2020");
+
+  // White chest
+  ellips(ctx, w * 0.5, h * 0.58 + bob, w * 0.13, h * 0.10, "#FFFFC0");
+
+  // Neck
+  ellips(ctx, w * 0.5, h * 0.44 + bob, w * 0.09, h * 0.08, "#FFFFC0");
+
+  // Head (cream)
+  circ(ctx, w * 0.5, h * 0.33 + bob, w * 0.13, "#FFFFC0");
+
+  // Golden crest
+  ctx.fillStyle = "#FFD700";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.44, h * 0.23 + bob);
+  ctx.lineTo(w * 0.40, h * 0.07 + bob);
+  ctx.lineTo(w * 0.50, h * 0.19 + bob);
+  ctx.lineTo(w * 0.56, h * 0.05 + bob);
+  ctx.lineTo(w * 0.60, h * 0.20 + bob);
+  ctx.lineTo(w * 0.56, h * 0.23 + bob);
+  ctx.fill();
+
+  // Golden beak
+  ctx.fillStyle = "#CCAA00";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.43, h * 0.35 + bob); ctx.lineTo(w * 0.27, h * 0.38 + bob); ctx.lineTo(w * 0.43, h * 0.40 + bob);
+  ctx.fill();
+
+  // Eye (red)
+  eye(ctx, w * 0.44, h * 0.31 + bob, w * 0.042, "#880000");
+
+  ctx.restore();
+}
+
+// ─── Rayquaza ─────────────────────────────────────────────────────────────────
+
+export function drawRayquaza(
+  ctx: Ctx, x: number, y: number, w: number, h: number,
+  facingRight: boolean, animFrame: number, state: string, hurt: boolean
+) {
+  ctx.save();
+  if (!facingRight) { ctx.translate(x + w, y); ctx.scale(-1, 1); x = 0; y = 0; }
+  else              { ctx.translate(x, y);                        x = 0; y = 0; }
+  if (hurt) ctx.filter = "brightness(10) sepia(1) hue-rotate(0deg) saturate(5)";
+
+  const bob  = state === "walking" ? Math.sin(animFrame * 0.2) * 2 : 0;
+  const wave = Math.sin(animFrame * 0.12) * 3;
+
+  // Serpentine body
+  ctx.fillStyle = "#1A5C1A";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.35, h * 0.15 + bob);
+  ctx.bezierCurveTo(w * 0.58, h * 0.15 + bob + wave, w * 0.62, h * 0.42 + bob, w * 0.55, h * 0.62 + bob);
+  ctx.bezierCurveTo(w * 0.50, h * 0.84 + bob - wave, w * 0.44, h * 0.90 + bob, w * 0.38, h * 1.0 + bob);
+  ctx.bezierCurveTo(w * 0.28, h * 0.90 + bob - wave, w * 0.23, h * 0.75 + bob, w * 0.30, h * 0.56 + bob);
+  ctx.bezierCurveTo(w * 0.36, h * 0.36 + bob, w * 0.27, h * 0.20 + bob, w * 0.35, h * 0.15 + bob);
+  ctx.fill();
+
+  // Yellow ring patterns
+  for (let i = 0; i < 5; i++) {
+    const ty = h * (0.28 + i * 0.14) + bob;
+    const tx = w * (0.43 + Math.sin(i * 1.4) * 0.05);
+    ellips(ctx, tx, ty, w * 0.12, h * 0.022, "#CCAA00");
+  }
+
+  // Small wings
+  ctx.fillStyle = "#2D7A2D";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.38, h * 0.36 + bob); ctx.lineTo(w * 0.08, h * 0.24 + bob); ctx.lineTo(w * 0.14, h * 0.44 + bob); ctx.lineTo(w * 0.36, h * 0.44 + bob);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(w * 0.55, h * 0.36 + bob); ctx.lineTo(w * 0.88, h * 0.22 + bob); ctx.lineTo(w * 0.84, h * 0.42 + bob); ctx.lineTo(w * 0.57, h * 0.44 + bob);
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle = "#1A5C1A";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.30, h * 0.13 + bob);
+  ctx.lineTo(w * 0.12, h * 0.04 + bob);
+  ctx.lineTo(w * 0.08, h * 0.14 + bob);
+  ctx.lineTo(w * 0.20, h * 0.20 + bob);
+  ctx.lineTo(w * 0.46, h * 0.20 + bob);
+  ctx.lineTo(w * 0.50, h * 0.13 + bob);
+  ctx.closePath();
+  ctx.fill();
+
+  // Head pattern
+  ellips(ctx, w * 0.30, h * 0.115 + bob, w * 0.11, h * 0.025, "#CCAA00");
+
+  // Fangs
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.18, h * 0.15 + bob); ctx.lineTo(w * 0.13, h * 0.22 + bob); ctx.lineTo(w * 0.22, h * 0.16 + bob);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(w * 0.27, h * 0.15 + bob); ctx.lineTo(w * 0.24, h * 0.22 + bob); ctx.lineTo(w * 0.31, h * 0.16 + bob);
+  ctx.fill();
+
+  // Red eyes
+  circ(ctx, w * 0.40, h * 0.095 + bob, w * 0.04, "#FF2200");
+  circ(ctx, w * 0.42, h * 0.095 + bob, w * 0.02, "#000000");
+
+  ctx.restore();
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
-export type PokemonId = "pikachu" | "charizard" | "bulbasaur" | "squirtle" | "mewtwo" | "gengar" | "eevee";
+export type PokemonId = "pikachu" | "charizard" | "bulbasaur" | "squirtle" | "mewtwo" | "gengar" | "eevee" | "lugia" | "hooh" | "rayquaza";
 
 export const SPRITE_MAP: Record<
   PokemonId,
@@ -744,4 +968,7 @@ export const SPRITE_MAP: Record<
   mewtwo:    drawMewtwo,
   gengar:    drawGengar,
   eevee:     drawEevee,
+  lugia:    drawLugia,
+  hooh:     drawHoOh,
+  rayquaza: drawRayquaza,
 };
