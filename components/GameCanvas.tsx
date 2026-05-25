@@ -655,10 +655,11 @@ function VoiceSpecialButton({
 
     recognition.continuous      = true;
     recognition.interimResults  = true;  // captura palabras mientras se forman
-    recognition.maxAlternatives = 5;     // más hipótesis = más chances de acertar
-    // es-ES para comandos en español; Chrome también fallback a en-US si el modelo
-    // no entiende la palabra — nuestros word-lists cubren ambos idiomas.
-    recognition.lang = "es-ES";
+    recognition.maxAlternatives = 6;     // más hipótesis = más chances de acertar
+    // Usa el idioma español del navegador si está disponible (es-MX, es-AR, etc.)
+    // para maximizar compatibilidad con el acento del usuario.
+    // Si el navegador no está en español, forzamos es-ES como mejor modelo disponible.
+    recognition.lang = navigator.language.startsWith("es") ? navigator.language : "es-ES";
 
     recognition.onresult = (event) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -676,19 +677,18 @@ function VoiceSpecialButton({
           const transcript = alt.transcript.toLowerCase().trim();
           if (!transcript) continue;
 
-          // Confianza mínima para evitar falsos positivos.
           // Los resultados interinos no tienen score fiable → los aceptamos siempre.
-          // En resultados finales filtramos sólo "special" (mayor riesgo de FP).
+          // En finales aplicamos un umbral mínimo para filtrar ruido puro.
           const confidence = alt.confidence ?? 1;
-          if (isFinal && confidence < 0.15) continue;
+          if (isFinal && confidence < 0.08) continue;
 
           // Dirección / salto / stop: interino para mínima latencia
           const cmd = classifyVoiceCommand(transcript);
           if (cmd === "left" || cmd === "right" || cmd === "jump" || cmd === "stop") {
             fired = dispatch(transcript);
           }
-          // Especial: sólo en resultado final con confianza decente
-          if (cmd === "special" && isFinal && confidence >= 0.2) {
+          // Especial: sólo en resultado final con confianza mínima
+          if (cmd === "special" && isFinal && confidence >= 0.12) {
             fired = dispatch(transcript);
           }
         }
@@ -714,7 +714,16 @@ function VoiceSpecialButton({
         setStatus("blocked");
         return;
       }
-      // Any other error: keep trying
+      // no-speech: el micrófono funciona pero no hubo voz detectada → reiniciar rápido
+      if (event.error === "no-speech") {
+        lastIndexRef.current = -1;
+        restartTimerRef.current = window.setTimeout(() => {
+          if (!enabledRef.current) return;
+          try { recognition.start(); } catch { /* already started */ }
+        }, 80);
+        return;
+      }
+      // Cualquier otro error: reintentar
       if (enabledRef.current) setStatus("listening");
     };
 
@@ -726,7 +735,7 @@ function VoiceSpecialButton({
       restartTimerRef.current = window.setTimeout(() => {
         if (!enabledRef.current) return;
         try { recognition.start(); } catch { /* already started */ }
-      }, 200);
+      }, 120);
     };
 
     recognitionRef.current = recognition;
