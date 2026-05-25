@@ -457,10 +457,6 @@ function MobileControls({
       event.preventDefault();
       onRelease(key);
     },
-    onPointerLeave: (event: PointerEvent<HTMLButtonElement>) => {
-      if (event.buttons === 0) return;
-      onRelease(key);
-    },
   });
 
   return (
@@ -536,9 +532,9 @@ declare global {
 }
 
 // ── Cooldowns per command type (ms) ──────────────────────────────────────────
-const CD_JUMP    = 350;   // prevent double-jump from echo
-const CD_SPECIAL = 600;   // prevent double special
-const DIR_HOLD   = 1400;  // ms to hold direction before auto-release (silence)
+const CD_JUMP    = 220;   // reducido: respuesta más rápida al salto
+const CD_SPECIAL = 500;   // reducido: habilidad especial
+const DIR_HOLD   = 1600;  // ampliado: mantiene dirección más tiempo ante silencio
 
 function VoiceSpecialButton({
   triggerSpecial,
@@ -658,8 +654,10 @@ function VoiceSpecialButton({
     }
 
     recognition.continuous      = true;
-    recognition.interimResults  = true;  // catch words as they form
-    recognition.maxAlternatives = 3;     // check up to 3 hypotheses
+    recognition.interimResults  = true;  // captura palabras mientras se forman
+    recognition.maxAlternatives = 5;     // más hipótesis = más chances de acertar
+    // es-ES para comandos en español; Chrome también fallback a en-US si el modelo
+    // no entiende la palabra — nuestros word-lists cubren ambos idiomas.
     recognition.lang = "es-ES";
 
     recognition.onresult = (event) => {
@@ -674,16 +672,23 @@ function VoiceSpecialButton({
         // Check all alternatives the browser suggests
         let fired: string | null = null;
         for (let a = 0; a < result.length && !fired; a++) {
-          const transcript = result[a].transcript.toLowerCase().trim();
+          const alt        = result[a];
+          const transcript = alt.transcript.toLowerCase().trim();
           if (!transcript) continue;
 
-          // Direction / jump / stop: fire on interim for lowest latency
+          // Confianza mínima para evitar falsos positivos.
+          // Los resultados interinos no tienen score fiable → los aceptamos siempre.
+          // En resultados finales filtramos sólo "special" (mayor riesgo de FP).
+          const confidence = alt.confidence ?? 1;
+          if (isFinal && confidence < 0.15) continue;
+
+          // Dirección / salto / stop: interino para mínima latencia
           const cmd = classifyVoiceCommand(transcript);
           if (cmd === "left" || cmd === "right" || cmd === "jump" || cmd === "stop") {
             fired = dispatch(transcript);
           }
-          // Special: only on final result
-          if (cmd === "special" && isFinal) {
+          // Especial: sólo en resultado final con confianza decente
+          if (cmd === "special" && isFinal && confidence >= 0.2) {
             fired = dispatch(transcript);
           }
         }
@@ -715,6 +720,8 @@ function VoiceSpecialButton({
 
     recognition.onend = () => {
       if (!enabledRef.current) return;
+      // Reset index so interim results aren't blocked in the new session
+      lastIndexRef.current = -1;
       // Auto-restart after short pause (browser stops after silence)
       restartTimerRef.current = window.setTimeout(() => {
         if (!enabledRef.current) return;

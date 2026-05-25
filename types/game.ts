@@ -70,6 +70,8 @@ export interface CreatureColors {
   accent: string;
 }
 
+export type RarityType = "comun" | "poco-comun" | "raro" | "legendario";
+
 export interface CreatureData {
   id: string;
   name: string;
@@ -79,6 +81,9 @@ export interface CreatureData {
   specialDescription: string;
   stats: CreatureStats;
   colors: CreatureColors;
+  rarity: RarityType;
+  /** 0 = always unlocked; N = need level N completed (highscore > 0) */
+  unlockLevel: number;
 }
 
 // ─── Input ────────────────────────────────────────────────────────────────────

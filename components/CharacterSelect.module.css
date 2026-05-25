@@ -118,6 +118,81 @@
   white-space: nowrap;
 }
 
+/* ── Rarity badge ──────────────────────────────────────────────────────────── */
+.rarityBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.rarityComun      { background: rgba(158,158,158,0.20); color: #bdbdbd; border: 1px solid #9e9e9e55; }
+.rarityPocoCom    { background: rgba(76,175,80,0.20);   color: #81c784; border: 1px solid #4caf5055; }
+.rarityRaro       { background: rgba(33,150,243,0.20);  color: #64b5f6; border: 1px solid #2196f355; }
+.rarityLegendario { background: rgba(255,152,0,0.22);   color: #ffb74d; border: 1px solid #ff980055; }
+
+/* ── Locked card overlay ───────────────────────────────────────────────────── */
+.cardWrapper {
+  position: relative;
+}
+.cardLockOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+}
+.lockIcon {
+  font-size: 20px;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px #000);
+}
+.lockLevel {
+  font-size: 10px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.05em;
+}
+
+/* ── Locked state for detail panel ─────────────────────────────────────────── */
+.lockedInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: center;
+}
+.lockedBigIcon { font-size: 44px; }
+.lockedTitle {
+  font-size: 16px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.85);
+}
+.lockedHint {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.4;
+}
+
+/* ── Card rarity dot ───────────────────────────────────────────────────────── */
+.cardRarityDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
 .detailColumn {
   min-width: 0;
   min-height: 0;

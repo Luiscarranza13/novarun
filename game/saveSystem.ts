@@ -36,6 +36,11 @@ export function getAllHighScores(): number[] {
   return Array.from({ length: LEVEL_COUNT }, (_, i) => data[`level_${i}`] ?? 0);
 }
 
+/** Returns true if the given 1-based level number has been completed at least once. */
+export function isLevelCompleted(levelNumber: number): boolean {
+  return getHighScore(levelNumber - 1) > 0;
+}
+
 // ─── Achievements ─────────────────────────────────────────────────────────────
 
 export interface AchievementDef {

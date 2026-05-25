@@ -160,6 +160,9 @@ export class GameEngine {
     this.enemyProjectiles = [];
     this.boss             = null;
     this.playerTookDamage = false;
+    this.heldKeys.clear();
+    this.pulseJump = this.pulseAttack = this.pulseSpecial = false;
+    this.gpPrev = { jump: false, attack: false, special: false };
 
     const level = LEVELS[levelIndex];
     if (!level) return;
@@ -232,6 +235,7 @@ export class GameEngine {
   resume() {
     if (this.halted || !this.paused) return;
     this.paused = false;
+    this.pulseJump = this.pulseAttack = this.pulseSpecial = false;
     this.callbacks.onStateChange("playing");
     this.loop();
   }
@@ -298,6 +302,7 @@ export class GameEngine {
 
     // Input
     const h = this.heldKeys;
+    const wasSpecial = this.pulseSpecial;
     p.update(
       {
         left:     h.has("ArrowLeft")  || h.has("a") || h.has("A"),
@@ -492,8 +497,8 @@ export class GameEngine {
       }
     }
 
-    // Special usage achievement
-    if (this.pulseSpecial) {
+    // Special usage achievement (use saved flag — pulses were consumed earlier)
+    if (wasSpecial) {
       if (unlockAchievement("used_special")) this.callbacks.onAchievement?.("used_special");
     }
 

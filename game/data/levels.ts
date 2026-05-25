@@ -8,64 +8,74 @@ function emptyMap(rows: number, cols: number): TileType[][] {
   return Array.from({ length: rows }, () => Array(cols).fill(0) as TileType[]);
 }
 
-function fillRow(
-  map: TileType[][], row: number,
-  c1: number, c2: number, type: TileType
-) {
-  for (let c = c1; c <= c2; c++) {
+function fillRow(map: TileType[][], row: number, c1: number, c2: number, type: TileType) {
+  for (let c = c1; c <= c2; c++)
     if (c >= 0 && c < map[0].length) map[row][c] = type;
-  }
 }
 
-function fillRect(
-  map: TileType[][], col: number, row: number,
-  w: number, h: number, type: TileType
-) {
+function fillRect(map: TileType[][], col: number, row: number, w: number, h: number, type: TileType) {
   for (let r = row; r < row + h; r++)
     for (let c = col; c < col + w; c++)
-      if (r >= 0 && r < map.length && c >= 0 && c < map[0].length)
-        map[r][c] = type;
+      if (r >= 0 && r < map.length && c >= 0 && c < map[0].length) map[r][c] = type;
 }
 
-// ─── Level 1 — Ruta 1 (Pallet Town) ──────────────────────────────────────────
+// ─── Level 1 — Ruta 1 (Pallet Town) · 120 tiles ───────────────────────────────
+// Tutorial: gaps simples + sección de escalera ascendente
 
 function buildLevel1(): TileType[][] {
-  const map = emptyMap(12, 60);
+  const map = emptyMap(12, 120);
 
-  // Ground (rows 9-11) with gaps at 13-15, 31-33, 47-49
+  // ── Primera mitad (0–59): misma dificultad original ────────────────────────
   for (let row = 9; row <= 11; row++) {
     fillRow(map, row, 0,  12, 1);
     fillRow(map, row, 16, 30, 1);
     fillRow(map, row, 34, 46, 1);
     fillRow(map, row, 50, 59, 1);
   }
-
-  // Platforms (type 2 = one-way)
-  fillRow(map, 6, 3,  7,  2);  // early hop
-  fillRow(map, 5, 10, 13, 2);  // bridge over gap 1
-  fillRow(map, 7, 17, 20, 2);  // low ledge
-  fillRow(map, 4, 22, 25, 2);  // high platform
-  fillRow(map, 6, 27, 31, 2);  // bridge over gap 2
+  fillRow(map, 6, 3,  7,  2);
+  fillRow(map, 5, 10, 13, 2);
+  fillRow(map, 7, 17, 20, 2);
+  fillRow(map, 4, 22, 25, 2);
+  fillRow(map, 6, 27, 31, 2);
   fillRow(map, 5, 35, 38, 2);
-  fillRow(map, 3, 40, 43, 2);  // sky platform
-  fillRow(map, 6, 43, 48, 2);  // bridge over gap 3
+  fillRow(map, 3, 40, 43, 2);
+  fillRow(map, 6, 43, 48, 2);
   fillRow(map, 4, 52, 55, 2);
-  fillRow(map, 2, 56, 59, 2);  // top near goal
-
-  // Solid raised terrain
-  fillRect(map, 8, 7, 2, 2, 1);
+  fillRow(map, 2, 56, 59, 2);
+  fillRect(map, 8,  7, 2, 2, 1);
   fillRect(map, 24, 6, 2, 3, 1);
   fillRect(map, 37, 6, 2, 3, 1);
+
+  // ── Segunda mitad (60–119): escalera y gaps más amplios ───────────────────
+  for (let row = 9; row <= 11; row++) {
+    fillRow(map, row, 60, 71, 1);
+    fillRow(map, row, 75, 87, 1);
+    fillRow(map, row, 91, 103, 1);
+    fillRow(map, row, 107, 119, 1);
+  }
+  // Gaps: 72-74, 88-90, 104-106
+  fillRow(map, 7, 63,  67, 2);
+  fillRow(map, 5, 71,  75, 2);  // puente sobre gap 1
+  fillRow(map, 4, 79,  83, 2);
+  fillRow(map, 3, 86,  90, 2);  // puente sobre gap 2 (alto)
+  fillRow(map, 5, 93,  97, 2);
+  fillRow(map, 2, 101, 106, 2); // puente sobre gap 3 (muy alto)
+  fillRow(map, 4, 109, 113, 2);
+  fillRow(map, 6, 115, 119, 2);
+  fillRect(map, 67,  6, 2, 3, 1);
+  fillRect(map, 84,  5, 2, 4, 1);
+  fillRect(map, 100, 4, 2, 5, 1);
 
   return map;
 }
 
-// ─── Level 2 — Monte Luna ─────────────────────────────────────────────────────
+// ─── Level 2 — Monte Luna · 130 tiles ────────────────────────────────────────
+// Cueva más oscura y densa; segunda mitad con techo bajo y estalactitas triples
 
 function buildLevel2(): TileType[][] {
-  const map = emptyMap(12, 65);
+  const map = emptyMap(12, 130);
 
-  // Spiky cave ground with more gaps
+  // ── Primera mitad (0–64) ──────────────────────────────────────────────────
   for (let row = 9; row <= 11; row++) {
     fillRow(map, row, 0,  7,  1);
     fillRow(map, row, 11, 19, 1);
@@ -74,72 +84,91 @@ function buildLevel2(): TileType[][] {
     fillRow(map, row, 46, 53, 1);
     fillRow(map, row, 57, 64, 1);
   }
-
-  // Dense platforms
-  fillRow(map, 7, 2,  5,  2);
-  fillRow(map, 5, 6,  9,  2);
-  fillRow(map, 6, 12, 15, 2);
-  fillRow(map, 4, 17, 20, 2);
-  fillRow(map, 6, 21, 24, 2);
-  fillRow(map, 3, 26, 29, 2);
-  fillRow(map, 5, 31, 34, 2);
-  fillRow(map, 7, 35, 38, 2);
-  fillRow(map, 4, 39, 42, 2);
-  fillRow(map, 6, 43, 46, 2);
-  fillRow(map, 3, 48, 51, 2);
-  fillRow(map, 5, 53, 56, 2);
-  fillRow(map, 7, 57, 60, 2);
-  fillRow(map, 4, 61, 64, 2);
-
-  // Cave stalactite-style blocks from ceiling
-  fillRect(map, 4,  0, 2, 3, 1);
-  fillRect(map, 14, 0, 2, 4, 1);
-  fillRect(map, 27, 0, 2, 3, 1);
-  fillRect(map, 40, 0, 2, 4, 1);
+  fillRow(map, 7, 2,  5,  2); fillRow(map, 5, 6,  9,  2);
+  fillRow(map, 6, 12, 15, 2); fillRow(map, 4, 17, 20, 2);
+  fillRow(map, 6, 21, 24, 2); fillRow(map, 3, 26, 29, 2);
+  fillRow(map, 5, 31, 34, 2); fillRow(map, 7, 35, 38, 2);
+  fillRow(map, 4, 39, 42, 2); fillRow(map, 6, 43, 46, 2);
+  fillRow(map, 3, 48, 51, 2); fillRow(map, 5, 53, 56, 2);
+  fillRow(map, 7, 57, 60, 2); fillRow(map, 4, 61, 64, 2);
+  fillRect(map, 4,  0, 2, 3, 1); fillRect(map, 14, 0, 2, 4, 1);
+  fillRect(map, 27, 0, 2, 3, 1); fillRect(map, 40, 0, 2, 4, 1);
   fillRect(map, 55, 0, 2, 3, 1);
-  // Floor rocks
-  fillRect(map, 9,  6, 2, 3, 1);
-  fillRect(map, 24, 5, 2, 4, 1);
+  fillRect(map, 9,  6, 2, 3, 1); fillRect(map, 24, 5, 2, 4, 1);
   fillRect(map, 47, 6, 2, 3, 1);
+
+  // ── Segunda mitad (65–129): cueva más cerrada, paso a paso ───────────────
+  for (let row = 9; row <= 11; row++) {
+    fillRow(map, row, 65, 74,  1);
+    fillRow(map, row, 78, 88,  1);
+    fillRow(map, row, 92, 102, 1);
+    fillRow(map, row, 106, 116, 1);
+    fillRow(map, row, 120, 129, 1);
+  }
+  fillRow(map, 6, 67,  70, 2); fillRow(map, 4, 72,  77, 2);
+  fillRow(map, 7, 80,  83, 2); fillRow(map, 3, 86,  91, 2);
+  fillRow(map, 5, 94,  98, 2); fillRow(map, 6, 100, 104, 2);
+  fillRow(map, 3, 108, 112, 2); fillRow(map, 5, 114, 118, 2);
+  fillRow(map, 7, 120, 124, 2); fillRow(map, 4, 126, 129, 2);
+  // Estalactitas dobles
+  fillRect(map, 68,  0, 2, 4, 1); fillRect(map, 79,  0, 2, 3, 1);
+  fillRect(map, 93,  0, 2, 5, 1); fillRect(map, 107, 0, 2, 3, 1);
+  fillRect(map, 121, 0, 2, 4, 1);
+  // Rocas en el suelo
+  fillRect(map, 75,  6, 2, 3, 1); fillRect(map, 103, 5, 2, 4, 1);
+  fillRect(map, 117, 6, 2, 3, 1);
+  // Techo bajo en dos zonas
+  fillRow(map, 2, 82,  90, 1);
+  fillRow(map, 2, 110, 118, 1);
 
   return map;
 }
 
-// ─── Level 3 — Islas Espuma ───────────────────────────────────────────────────
+// ─── Level 3 — Islas Espuma · 140 tiles ─────────────────────────────────────
+// Puro platforming aéreo; segunda mitad con islas más pequeñas y trampas de vacío
 
 function buildLevel3(): TileType[][] {
-  const map = emptyMap(12, 70);
+  const map = emptyMap(12, 140);
 
-  // Almost no ground — pure platforming
+  // Suelo sólo al inicio y al final
   for (let row = 9; row <= 11; row++) {
     fillRow(map, row, 0,  4,  1);
-    fillRow(map, row, 66, 69, 1);
+    fillRow(map, row, 136, 139, 1);
   }
 
-  // Zigzag platforms
-  const platforms: [number, number, number][] = [
+  // ── Primera mitad (0–69): plataformas en zigzag ──────────────────────────
+  const p1: [number, number, number][] = [
     [1,  7, 4], [6,  5, 4], [10, 7, 3], [14, 4, 4], [18, 6, 3],
     [22, 3, 4], [25, 6, 3], [28, 4, 4], [32, 7, 3], [36, 5, 4],
     [38, 3, 4], [42, 6, 3], [45, 4, 4], [49, 7, 3], [53, 5, 4],
     [55, 3, 4], [59, 6, 3], [62, 4, 4], [65, 7, 3], [67, 5, 3],
   ];
-  for (const [c, r, ww] of platforms) fillRow(map, r, c, c + ww - 1, 2);
+  for (const [c, r, w] of p1) fillRow(map, r, c, c + w - 1, 2);
+  fillRect(map, 9,  7, 1, 5, 1); fillRect(map, 24, 6, 1, 6, 1);
+  fillRect(map, 42, 7, 1, 5, 1); fillRect(map, 60, 6, 1, 6, 1);
 
-  // Ice pillars
-  fillRect(map, 9,  7, 1, 5, 1);
-  fillRect(map, 24, 6, 1, 6, 1);
-  fillRect(map, 42, 7, 1, 5, 1);
-  fillRect(map, 60, 6, 1, 6, 1);
+  // ── Segunda mitad (70–139): islas más pequeñas, pasos de fe ──────────────
+  const p2: [number, number, number][] = [
+    [70,  7, 3], [74, 5, 3], [78, 7, 3], [82, 4, 3], [85, 6, 3],
+    [89, 3, 3],  [93, 7, 2], [96, 5, 3], [100, 3, 3], [104, 6, 2],
+    [107, 4, 3], [111, 7, 3], [115, 5, 3], [119, 3, 3], [122, 6, 3],
+    [126, 4, 3], [130, 7, 3], [133, 5, 3],
+  ];
+  for (const [c, r, w] of p2) fillRow(map, r, c, c + w - 1, 2);
+  // Pilares de hielo
+  fillRect(map, 76,  7, 1, 5, 1); fillRect(map, 94,  6, 1, 6, 1);
+  fillRect(map, 112, 7, 1, 5, 1); fillRect(map, 128, 6, 1, 6, 1);
 
   return map;
 }
 
-// ─── Level 4 — Acantilado Eléctrico ──────────────────────────────────────────
+// ─── Level 4 — Acantilado Eléctrico · 145 tiles ──────────────────────────────
+// Gaps muy anchos; segunda mitad sólo plataformas sin suelo + torres eléctricas
 
 function buildLevel4(): TileType[][] {
-  const map = emptyMap(12, 72);
+  const map = emptyMap(12, 145);
 
-  // Ground with wide gaps — need good jumping to cross
+  // ── Primera mitad (0–71) ──────────────────────────────────────────────────
   for (let row = 9; row <= 11; row++) {
     fillRow(map, row, 0,  8,  1);
     fillRow(map, row, 13, 22, 1);
@@ -148,159 +177,180 @@ function buildLevel4(): TileType[][] {
     fillRow(map, row, 56, 65, 1);
     fillRow(map, row, 68, 71, 1);
   }
+  fillRow(map, 7, 2,  5,  2); fillRow(map, 5, 5,  8,  2);
+  fillRow(map, 6, 10, 13, 2); fillRow(map, 4, 14, 17, 2);
+  fillRow(map, 7, 18, 21, 2); fillRow(map, 3, 22, 26, 2);
+  fillRow(map, 5, 28, 31, 2); fillRow(map, 7, 33, 36, 2);
+  fillRow(map, 4, 37, 40, 2); fillRow(map, 6, 41, 44, 2);
+  fillRow(map, 2, 44, 48, 2); fillRow(map, 5, 49, 53, 2);
+  fillRow(map, 7, 54, 57, 2); fillRow(map, 3, 58, 62, 2);
+  fillRow(map, 5, 63, 67, 2); fillRow(map, 6, 68, 71, 2);
+  fillRect(map, 7,  6, 2, 3, 1); fillRect(map, 21, 5, 2, 4, 1);
+  fillRect(map, 38, 6, 2, 3, 1); fillRect(map, 53, 5, 2, 4, 1);
 
-  // Multi-level platforms — creates a vertical challenge
-  fillRow(map, 7, 2,  5,  2);
-  fillRow(map, 5, 5,  8,  2);
-  fillRow(map, 6, 10, 13, 2);
-  fillRow(map, 4, 14, 17, 2);
-  fillRow(map, 7, 18, 21, 2);
-  fillRow(map, 3, 22, 26, 2);
-  fillRow(map, 5, 28, 31, 2);
-  fillRow(map, 7, 33, 36, 2);
-  fillRow(map, 4, 37, 40, 2);
-  fillRow(map, 6, 41, 44, 2);
-  fillRow(map, 2, 44, 48, 2);
-  fillRow(map, 5, 49, 53, 2);
-  fillRow(map, 7, 54, 57, 2);
-  fillRow(map, 3, 58, 62, 2);
-  fillRow(map, 5, 63, 67, 2);
-  fillRow(map, 6, 68, 71, 2);
-
-  // Solid cliff pillars
-  fillRect(map, 7, 6, 2, 3, 1);
-  fillRect(map, 21, 5, 2, 4, 1);
-  fillRect(map, 38, 6, 2, 3, 1);
-  fillRect(map, 53, 5, 2, 4, 1);
+  // ── Segunda mitad (72–144): solo plataformas, sin suelo, gap masivo ───────
+  fillRow(map, 7, 73,  77, 2); fillRow(map, 5, 79,  83, 2);
+  fillRow(map, 3, 85,  89, 2); fillRow(map, 6, 91,  95, 2);
+  fillRow(map, 2, 97,  101, 2); fillRow(map, 4, 103, 107, 2);
+  fillRow(map, 7, 109, 113, 2); fillRow(map, 5, 115, 119, 2);
+  fillRow(map, 3, 121, 125, 2); fillRow(map, 6, 127, 131, 2);
+  fillRow(map, 2, 133, 137, 2); fillRow(map, 5, 139, 143, 2);
+  // Torres sólidas (apoyo y decoración)
+  fillRect(map, 77, 4, 1, 8, 1); fillRect(map, 95, 3, 1, 9, 1);
+  fillRect(map, 113, 4, 1, 8, 1); fillRect(map, 131, 3, 1, 9, 1);
+  // Suelo corto al final para que pueda llegar
+  for (let row = 9; row <= 11; row++) fillRow(map, row, 139, 144, 1);
 
   return map;
 }
 
-// ─── Level 5 — Templo Maldito ─────────────────────────────────────────────────
+// ─── Level 5 — Templo Maldito · 150 tiles ────────────────────────────────────
+// Suelo continuo con pilares y pasillos; segunda mitad: pasillo trampa con techos bajos
 
 function buildLevel5(): TileType[][] {
-  const map = emptyMap(12, 76);
+  const map = emptyMap(12, 150);
 
-  // Temple floor — continuous with raised sections
-  for (let row = 9; row <= 11; row++) {
-    fillRow(map, row, 0,  75, 1);
-  }
+  // ── Primera mitad (0–75): pilares y plataformas ───────────────────────────
+  for (let row = 9; row <= 11; row++) fillRow(map, row, 0, 149, 1);
 
-  // Raised pillars blocking direct path
-  fillRect(map, 10, 6, 3, 3, 1);
-  fillRect(map, 20, 5, 3, 4, 1);
-  fillRect(map, 30, 4, 3, 5, 1);
-  fillRect(map, 42, 6, 3, 3, 1);
-  fillRect(map, 54, 5, 3, 4, 1);
-  fillRect(map, 64, 4, 3, 5, 1);
-
-  // Raised platform sections above pillars
-  fillRow(map, 5, 4,  8,  2);
-  fillRow(map, 4, 13, 17, 2);
-  fillRow(map, 3, 22, 26, 2);
-  fillRow(map, 5, 33, 38, 2);
-  fillRow(map, 4, 44, 49, 2);
-  fillRow(map, 3, 56, 61, 2);
+  fillRect(map, 10, 6, 3, 3, 1); fillRect(map, 20, 5, 3, 4, 1);
+  fillRect(map, 30, 4, 3, 5, 1); fillRect(map, 42, 6, 3, 3, 1);
+  fillRect(map, 54, 5, 3, 4, 1); fillRect(map, 64, 4, 3, 5, 1);
+  fillRow(map, 5, 4,  8,  2); fillRow(map, 4, 13, 17, 2);
+  fillRow(map, 3, 22, 26, 2); fillRow(map, 5, 33, 38, 2);
+  fillRow(map, 4, 44, 49, 2); fillRow(map, 3, 56, 61, 2);
   fillRow(map, 5, 66, 70, 2);
+  fillRow(map, 0, 8,  14, 1); fillRow(map, 1, 8,  14, 1);
+  fillRow(map, 0, 25, 32, 1); fillRow(map, 1, 25, 32, 1);
+  fillRow(map, 0, 48, 55, 1); fillRow(map, 1, 48, 55, 1);
 
-  // Ceiling sections (trap-like low ceiling in places)
-  fillRow(map, 0, 8,  14, 1);
-  fillRow(map, 0, 25, 32, 1);
-  fillRow(map, 0, 48, 55, 1);
-  fillRow(map, 1, 8,  14, 1);
-  fillRow(map, 1, 25, 32, 1);
-  fillRow(map, 1, 48, 55, 1);
+  // ── Segunda mitad (75–149): más pilares y pasillo con techo bajo ──────────
+  fillRect(map, 78,  6, 3, 3, 1); fillRect(map, 90,  5, 3, 4, 1);
+  fillRect(map, 103, 4, 3, 5, 1); fillRect(map, 115, 6, 3, 3, 1);
+  fillRect(map, 128, 5, 3, 4, 1); fillRect(map, 140, 4, 3, 5, 1);
+  fillRow(map, 5, 72,  76, 2);  fillRow(map, 4, 82,  87, 2);
+  fillRow(map, 3, 93,  98, 2);  fillRow(map, 5, 106, 111, 2);
+  fillRow(map, 4, 118, 123, 2); fillRow(map, 3, 131, 136, 2);
+  fillRow(map, 5, 143, 148, 2);
+  // Trampas de techo bajo
+  fillRow(map, 0, 75,  82,  1); fillRow(map, 1, 75,  82,  1);
+  fillRow(map, 0, 99,  107, 1); fillRow(map, 1, 99,  107, 1);
+  fillRow(map, 0, 124, 133, 1); fillRow(map, 1, 124, 133, 1);
 
   return map;
 }
 
-// ─── Level 6 — Cima Volcánica (Boss Level) ────────────────────────────────────
+// ─── Level 6 — Cima Volcánica (Boss) · 160 tiles ─────────────────────────────
+// Largo camino volcánico → arena final con jefe
 
 function buildLevel6(): TileType[][] {
-  const map = emptyMap(12, 82);
+  const map = emptyMap(12, 160);
 
-  // Approach: broken volcanic ground
+  // ── Aproximación volcánica (0–109) ────────────────────────────────────────
   for (let row = 9; row <= 11; row++) {
     fillRow(map, row, 0,  10, 1);
     fillRow(map, row, 14, 24, 1);
-    fillRow(map, row, 28, 38, 1);
-    fillRow(map, row, 42, 52, 1);
-    // Boss arena — solid flat floor
-    fillRow(map, row, 54, 81, 1);
+    fillRow(map, row, 28, 40, 1);
+    fillRow(map, row, 44, 56, 1);
+    fillRow(map, row, 60, 70, 1);
+    fillRow(map, row, 74, 84, 1);
+    fillRow(map, row, 88, 98, 1);
+    fillRow(map, row, 102, 109, 1);
+  }
+  // Piedras de paso
+  fillRow(map, 7, 2,  5,  2); fillRow(map, 5, 6,  9,  2);
+  fillRow(map, 6, 11, 14, 2); fillRow(map, 4, 16, 20, 2);
+  fillRow(map, 7, 22, 25, 2); fillRow(map, 5, 27, 30, 2);
+  fillRow(map, 3, 31, 36, 2); fillRow(map, 6, 38, 41, 2);
+  fillRow(map, 7, 43, 46, 2); fillRow(map, 5, 48, 52, 2);
+  fillRow(map, 4, 54, 57, 2); fillRow(map, 6, 59, 62, 2);
+  fillRow(map, 3, 64, 68, 2); fillRow(map, 5, 70, 73, 2);
+  fillRow(map, 7, 75, 78, 2); fillRow(map, 4, 80, 84, 2);
+  fillRow(map, 6, 86, 90, 2); fillRow(map, 3, 92, 96, 2);
+  fillRow(map, 5, 99, 103, 2);
+  // Rocas volcánicas
+  fillRect(map, 8,  7, 2, 2, 1); fillRect(map, 20, 6, 2, 3, 1);
+  fillRect(map, 36, 7, 2, 2, 1); fillRect(map, 52, 6, 2, 3, 1);
+  fillRect(map, 68, 7, 2, 2, 1); fillRect(map, 84, 6, 2, 3, 1);
+  fillRect(map, 97, 7, 2, 2, 1);
+
+  // ── Arena final (110–159): suelo sólido plano ─────────────────────────────
+  for (let row = 9; row <= 11; row++) fillRow(map, row, 110, 159, 1);
+  // Pilares de fuego en la entrada
+  fillRect(map, 110, 6, 2, 3, 1);
+  // Plataformas dentro de la arena para táctica
+  fillRow(map, 5, 118, 124, 2);
+  fillRow(map, 3, 130, 136, 2);
+  fillRow(map, 5, 143, 149, 2);
+
+  return map;
+}
+
+// ─── Sección final compartida ─────────────────────────────────────────────────
+// Se añade al final de cada nivel: ~65 tiles de desafío extra + zona de meta
+
+function appendEncoreSection(map: TileType[][], levelId: number): TileType[][] {
+  const start = map[0].length;
+  const extra  = levelId === 6 ? 70 : 65;
+  for (const row of map) row.push(...Array(extra).fill(0) as TileType[]);
+
+  // Suelo inicial del encore y zona de meta
+  if (levelId === 3) {
+    for (let row = 9; row <= 11; row++) {
+      fillRow(map, row, start, start + 6, 1);
+      fillRow(map, row, start + 56, start + extra - 1, 1);
+    }
+  } else {
+    for (let row = 9; row <= 11; row++) {
+      fillRow(map, row, start, start + 9, 1);
+      fillRow(map, row, start + 15, start + 27, 1);
+      fillRow(map, row, start + 31, start + extra - 1, 1);
+    }
   }
 
-  // Stepping stones to reach boss arena
-  fillRow(map, 7, 2,  5,  2);
-  fillRow(map, 5, 6,  9,  2);
-  fillRow(map, 6, 11, 14, 2);
-  fillRow(map, 4, 16, 20, 2);
-  fillRow(map, 7, 22, 25, 2);
-  fillRow(map, 5, 27, 30, 2);
-  fillRow(map, 3, 31, 36, 2);
-  fillRow(map, 6, 38, 41, 2);
-  fillRow(map, 7, 43, 46, 2);
-  fillRow(map, 5, 48, 52, 2);
+  // Plataformas del encore
+  const ledges: [number, number, number][] = [
+    [4,  7, 5], [10, 5, 4], [15, 6, 4], [20, 4, 5],
+    [26, 7, 4], [31, 5, 5], [37, 3, 4], [42, 6, 5],
+    [48, 4, 5], [54, 7, 4], [59, 5, 4],
+  ];
+  for (const [c, r, w] of ledges) fillRow(map, r, start + c, start + c + w - 1, 2);
 
-  // Volcanic rocks in the approach
-  fillRect(map, 8,  7, 2, 2, 1);
-  fillRect(map, 20, 6, 2, 3, 1);
-  fillRect(map, 36, 7, 2, 2, 1);
+  // Obstáculos sólidos del encore
+  fillRect(map, start + 11, 7, 2, 2, 1);
+  fillRect(map, start + 25, 6, 2, 3, 1);
+  fillRect(map, start + 38, 5, 2, 4, 1);
+  fillRect(map, start + 52, 6, 2, 3, 1);
 
-  // Boss arena walls (fire-pillars at entrance)
-  fillRect(map, 54, 6, 2, 3, 1);
+  // Variantes por nivel
+  if (levelId === 2) {
+    // Estalactitas extra en el encore de la cueva
+    fillRect(map, start + 6, 0, 2, 3, 1);
+    fillRect(map, start + 22, 0, 2, 4, 1);
+    fillRect(map, start + 44, 0, 2, 3, 1);
+  }
+  if (levelId === 4 || levelId === 6) {
+    fillRow(map, 2, start + 18, start + 23, 2);
+    fillRow(map, 4, start + 40, start + 46, 2);
+  }
+  if (levelId === 5) {
+    fillRow(map, 0, start + 9, start + 16, 1);
+    fillRow(map, 1, start + 9, start + 16, 1);
+    fillRow(map, 0, start + 30, start + 38, 1);
+    fillRow(map, 1, start + 30, start + 38, 1);
+  }
+  if (levelId === 6) {
+    // Extensión de la arena del jefe
+    for (let row = 9; row <= 11; row++) fillRow(map, row, start + 30, start + extra - 1, 1);
+    fillRect(map, start + 31, 6, 2, 3, 1);
+    fillRow(map, 5, start + 40, start + 46, 2);
+    fillRow(map, 3, start + 52, start + 58, 2);
+  }
 
   return map;
 }
 
 // ─── Level registry ───────────────────────────────────────────────────────────
-
-function appendEncoreSection(map: TileType[][], levelId: number): TileType[][] {
-  const start = map[0].length;
-  const extra = levelId === 6 ? 48 : 44;
-  for (const row of map) row.push(...Array(extra).fill(0) as TileType[]);
-
-  if (levelId === 3) {
-    for (let row = 9; row <= 11; row++) {
-      fillRow(map, row, start, start + 5, 1);
-      fillRow(map, row, start + 38, start + extra - 1, 1);
-    }
-  } else {
-    for (let row = 9; row <= 11; row++) {
-      fillRow(map, row, start, start + 8, 1);
-      fillRow(map, row, start + 13, start + 22, 1);
-      fillRow(map, row, start + 27, start + extra - 1, 1);
-    }
-  }
-
-  const ledges: [number, number, number][] = [
-    [3, 7, 4], [8, 5, 4], [13, 6, 4], [18, 4, 5],
-    [24, 7, 4], [29, 5, 5], [35, 3, 4], [39, 6, 4],
-  ];
-  for (const [c, r, w] of ledges) fillRow(map, r, start + c, start + c + w - 1, 2);
-
-  fillRect(map, start + 10, 7, 2, 2, 1);
-  fillRect(map, start + 22, 6, 2, 3, 1);
-  fillRect(map, start + 33, 6, 2, 3, 1);
-
-  if (levelId === 4 || levelId === 6) {
-    fillRow(map, 2, start + 16, start + 20, 2);
-    fillRow(map, 4, start + 37, start + 42, 2);
-  }
-
-  if (levelId === 5) {
-    fillRow(map, 0, start + 8, start + 15, 1);
-    fillRow(map, 1, start + 8, start + 15, 1);
-    fillRow(map, 0, start + 28, start + 35, 1);
-    fillRow(map, 1, start + 28, start + 35, 1);
-  }
-
-  if (levelId === 6) {
-    for (let row = 9; row <= 11; row++) fillRow(map, row, start + 28, start + extra - 1, 1);
-    fillRect(map, start + 29, 6, 2, 3, 1);
-  }
-
-  return map;
-}
 
 export const LEVELS: LevelData[] = [
   {
@@ -308,32 +358,46 @@ export const LEVELS: LevelData[] = [
     name: "Ruta 1 — Pallet Town",
     tiles: appendEncoreSection(buildLevel1(), 1),
     playerStartTile: { x: 1, y: 7 },
-    goalTile: { x: 101, y: 5 },
+    goalTile: { x: 181, y: 5 },
     enemySpawns: [
-      { tileX: 7,  tileY: 8, type: "basic",  patrolRange: 3 },
-      { tileX: 19, tileY: 8, type: "basic",  patrolRange: 2 },
-      { tileX: 29, tileY: 8, type: "jumper", patrolRange: 3 },
-      { tileX: 37, tileY: 8, type: "basic",  patrolRange: 2 },
-      { tileX: 45, tileY: 8, type: "jumper", patrolRange: 3 },
-      { tileX: 54, tileY: 8, type: "basic",  patrolRange: 2 },
-      { tileX: 68, tileY: 8, type: "basic",  patrolRange: 3 },
-      { tileX: 82, tileY: 8, type: "jumper", patrolRange: 3 },
-      { tileX: 94, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 7,   tileY: 8, type: "basic",   patrolRange: 3 },
+      { tileX: 19,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 29,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 37,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 45,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 54,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 66,  tileY: 8, type: "basic",   patrolRange: 3 },
+      { tileX: 77,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 85,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 95,  tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 107, tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 116, tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 136, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 155, tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 170, tileY: 8, type: "shooter", patrolRange: 1 },
     ],
     coinTiles: [
-      { x: 3, y: 5 }, { x: 5, y: 5 }, { x: 7, y: 5 },
+      { x: 3,  y: 5 }, { x: 5,  y: 5 }, { x: 7,  y: 5 },
       { x: 11, y: 4 }, { x: 12, y: 4 },
       { x: 22, y: 3 }, { x: 24, y: 3 },
       { x: 29, y: 5 }, { x: 30, y: 5 },
       { x: 40, y: 2 }, { x: 42, y: 2 },
-      { x: 52, y: 3 }, { x: 53, y: 3 }, { x: 55, y: 3 },
-      { x: 64, y: 6 }, { x: 69, y: 4 }, { x: 73, y: 5 },
-      { x: 78, y: 3 }, { x: 84, y: 6 }, { x: 91, y: 4 },
-      { x: 99, y: 5 },
+      { x: 52, y: 3 }, { x: 55, y: 3 },
+      { x: 64, y: 6 }, { x: 69, y: 4 },
+      { x: 73, y: 5 }, { x: 80, y: 3 },
+      { x: 87, y: 2 }, { x: 95, y: 4 },
+      { x: 101, y: 1 }, { x: 108, y: 5 },
+      { x: 113, y: 3 }, { x: 120, y: 6 },
+      { x: 130, y: 4 }, { x: 140, y: 5 },
+      { x: 150, y: 3 }, { x: 161, y: 6 },
+      { x: 169, y: 4 }, { x: 178, y: 5 },
     ],
-    heartTiles: [{ x: 18, y: 6 }, { x: 36, y: 4 }, { x: 88, y: 4 }],
-    starTiles:  [{ x: 23, y: 3 }],
-    speedTiles: [{ x: 43, y: 1 }, { x: 95, y: 3 }],
+    heartTiles: [
+      { x: 18, y: 6 }, { x: 36, y: 4 },
+      { x: 88, y: 4 }, { x: 145, y: 4 },
+    ],
+    starTiles:  [{ x: 23, y: 3 }, { x: 102, y: 1 }],
+    speedTiles: [{ x: 43, y: 1 }, { x: 115, y: 3 }, { x: 165, y: 3 }],
     bgTop:           "#87CEEB",
     bgBottom:        "#C8E6A0",
     tileColor:       "#5D8A3C",
@@ -345,31 +409,43 @@ export const LEVELS: LevelData[] = [
     name: "Monte Luna",
     tiles: appendEncoreSection(buildLevel2(), 2),
     playerStartTile: { x: 1, y: 7 },
-    goalTile: { x: 106, y: 5 },
+    goalTile: { x: 191, y: 5 },
     enemySpawns: [
-      { tileX: 4,  tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 14, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 25, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 30, tileY: 4, type: "shooter", patrolRange: 1 },
-      { tileX: 36, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 48, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 55, tileY: 4, type: "shooter", patrolRange: 1 },
-      { tileX: 59, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 72, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 86, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 99, tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 4,   tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 14,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 25,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 30,  tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 36,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 48,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 55,  tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 59,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 70,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 79,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 88,  tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 96,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 104, tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 115, tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 125, tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 155, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 175, tileY: 8, type: "jumper",  patrolRange: 3 },
     ],
     coinTiles: [
-      { x: 3, y: 6 }, { x: 7, y: 4 }, { x: 13, y: 5 },
+      { x: 3, y: 6 },  { x: 7, y: 4 },  { x: 13, y: 5 },
       { x: 18, y: 3 }, { x: 27, y: 2 }, { x: 32, y: 4 },
       { x: 40, y: 3 }, { x: 44, y: 5 }, { x: 49, y: 2 },
-      { x: 54, y: 4 }, { x: 62, y: 3 },
-      { x: 69, y: 6 }, { x: 74, y: 4 }, { x: 79, y: 5 },
-      { x: 85, y: 3 }, { x: 94, y: 4 }, { x: 103, y: 5 },
+      { x: 54, y: 4 }, { x: 62, y: 3 }, { x: 69, y: 6 },
+      { x: 74, y: 4 }, { x: 82, y: 5 }, { x: 90, y: 3 },
+      { x: 97, y: 2 }, { x: 106, y: 4 }, { x: 114, y: 3 },
+      { x: 120, y: 5 }, { x: 128, y: 2 },
+      { x: 140, y: 4 }, { x: 152, y: 5 }, { x: 163, y: 3 },
+      { x: 174, y: 4 }, { x: 186, y: 5 },
     ],
-    heartTiles: [{ x: 22, y: 5 }, { x: 50, y: 5 }, { x: 91, y: 4 }],
-    starTiles:  [{ x: 39, y: 2 }],
-    speedTiles: [{ x: 7,  y: 3 }, { x: 101, y: 3 }],
+    heartTiles: [
+      { x: 22, y: 5 }, { x: 50, y: 5 },
+      { x: 91, y: 4 }, { x: 148, y: 4 },
+    ],
+    starTiles:  [{ x: 39, y: 2 }, { x: 110, y: 2 }],
+    speedTiles: [{ x: 7, y: 3 }, { x: 83, y: 3 }, { x: 160, y: 3 }],
     bgTop:           "#1a1a2e",
     bgBottom:        "#16213e",
     tileColor:       "#4A4A6A",
@@ -381,33 +457,45 @@ export const LEVELS: LevelData[] = [
     name: "Islas Espuma",
     tiles: appendEncoreSection(buildLevel3(), 3),
     playerStartTile: { x: 1, y: 7 },
-    goalTile: { x: 111, y: 5 },
+    goalTile: { x: 201, y: 5 },
     enemySpawns: [
-      { tileX: 8,  tileY: 4, type: "jumper",  patrolRange: 2 },
-      { tileX: 18, tileY: 3, type: "basic",   patrolRange: 2 },
-      { tileX: 27, tileY: 5, type: "jumper",  patrolRange: 3 },
-      { tileX: 32, tileY: 6, type: "shooter", patrolRange: 1 },
-      { tileX: 37, tileY: 4, type: "jumper",  patrolRange: 2 },
-      { tileX: 46, tileY: 6, type: "basic",   patrolRange: 2 },
-      { tileX: 56, tileY: 5, type: "jumper",  patrolRange: 3 },
-      { tileX: 60, tileY: 3, type: "shooter", patrolRange: 1 },
-      { tileX: 65, tileY: 4, type: "basic",   patrolRange: 2 },
-      { tileX: 74, tileY: 6, type: "jumper",  patrolRange: 2 },
-      { tileX: 86, tileY: 4, type: "basic",   patrolRange: 2 },
-      { tileX: 101, tileY: 5, type: "shooter", patrolRange: 1 },
+      { tileX: 8,   tileY: 4, type: "jumper",  patrolRange: 2 },
+      { tileX: 18,  tileY: 3, type: "basic",   patrolRange: 2 },
+      { tileX: 27,  tileY: 5, type: "jumper",  patrolRange: 3 },
+      { tileX: 32,  tileY: 6, type: "shooter", patrolRange: 1 },
+      { tileX: 37,  tileY: 4, type: "jumper",  patrolRange: 2 },
+      { tileX: 46,  tileY: 6, type: "basic",   patrolRange: 2 },
+      { tileX: 56,  tileY: 5, type: "jumper",  patrolRange: 3 },
+      { tileX: 60,  tileY: 3, type: "shooter", patrolRange: 1 },
+      { tileX: 65,  tileY: 4, type: "basic",   patrolRange: 2 },
+      { tileX: 74,  tileY: 6, type: "jumper",  patrolRange: 2 },
+      { tileX: 83,  tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 92,  tileY: 5, type: "jumper",  patrolRange: 2 },
+      { tileX: 100, tileY: 3, type: "basic",   patrolRange: 2 },
+      { tileX: 110, tileY: 6, type: "shooter", patrolRange: 1 },
+      { tileX: 120, tileY: 4, type: "jumper",  patrolRange: 2 },
+      { tileX: 130, tileY: 5, type: "shooter", patrolRange: 1 },
+      { tileX: 165, tileY: 4, type: "jumper",  patrolRange: 2 },
+      { tileX: 180, tileY: 5, type: "shooter", patrolRange: 1 },
     ],
     coinTiles: [
-      { x: 3,  y: 6 }, { x: 8,  y: 4 }, { x: 14, y: 6 },
-      { x: 18, y: 3 }, { x: 23, y: 5 }, { x: 27, y: 2 },
-      { x: 32, y: 6 }, { x: 39, y: 4 }, { x: 43, y: 5 },
-      { x: 49, y: 6 }, { x: 55, y: 2 }, { x: 60, y: 6 },
-      { x: 65, y: 3 },
-      { x: 73, y: 6 }, { x: 78, y: 4 }, { x: 83, y: 5 },
-      { x: 89, y: 3 }, { x: 96, y: 6 }, { x: 105, y: 4 },
+      { x: 3, y: 6 },   { x: 8, y: 4 },   { x: 14, y: 6 },
+      { x: 18, y: 3 },  { x: 23, y: 5 },  { x: 27, y: 2 },
+      { x: 32, y: 6 },  { x: 39, y: 4 },  { x: 43, y: 5 },
+      { x: 49, y: 6 },  { x: 55, y: 2 },  { x: 60, y: 6 },
+      { x: 65, y: 3 },  { x: 73, y: 6 },  { x: 80, y: 4 },
+      { x: 86, y: 5 },  { x: 93, y: 3 },  { x: 100, y: 6 },
+      { x: 108, y: 4 }, { x: 115, y: 2 }, { x: 122, y: 6 },
+      { x: 130, y: 3 }, { x: 138, y: 5 },
+      { x: 150, y: 4 }, { x: 163, y: 6 }, { x: 175, y: 3 },
+      { x: 186, y: 5 }, { x: 196, y: 4 },
     ],
-    heartTiles: [{ x: 23, y: 2 }, { x: 54, y: 4 }, { x: 93, y: 4 }],
-    starTiles:  [{ x: 45, y: 3 }],
-    speedTiles: [{ x: 14, y: 3 }, { x: 108, y: 3 }],
+    heartTiles: [
+      { x: 23, y: 2 }, { x: 54, y: 4 },
+      { x: 105, y: 4 }, { x: 167, y: 4 },
+    ],
+    starTiles:  [{ x: 45, y: 3 }, { x: 116, y: 2 }],
+    speedTiles: [{ x: 14, y: 3 }, { x: 85, y: 3 }, { x: 170, y: 3 }],
     bgTop:           "#001f3f",
     bgBottom:        "#003366",
     tileColor:       "#B0D4E8",
@@ -419,32 +507,45 @@ export const LEVELS: LevelData[] = [
     name: "Acantilado Eléctrico",
     tiles: appendEncoreSection(buildLevel4(), 4),
     playerStartTile: { x: 1, y: 7 },
-    goalTile: { x: 113, y: 5 },
+    goalTile: { x: 206, y: 5 },
     enemySpawns: [
-      { tileX: 4,  tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 15, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 20, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 28, tileY: 4, type: "shooter", patrolRange: 1 },
-      { tileX: 33, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 43, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 50, tileY: 4, type: "shooter", patrolRange: 1 },
-      { tileX: 57, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 62, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 78, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 91, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 106, tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 4,   tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 15,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 20,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 28,  tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 33,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 43,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 50,  tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 57,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 62,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 75,  tileY: 5, type: "shooter", patrolRange: 1 },
+      { tileX: 83,  tileY: 5, type: "jumper",  patrolRange: 2 },
+      { tileX: 92,  tileY: 5, type: "basic",   patrolRange: 2 },
+      { tileX: 100, tileY: 5, type: "shooter", patrolRange: 1 },
+      { tileX: 110, tileY: 5, type: "jumper",  patrolRange: 2 },
+      { tileX: 120, tileY: 5, type: "shooter", patrolRange: 1 },
+      { tileX: 133, tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 155, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 175, tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 195, tileY: 8, type: "shooter", patrolRange: 1 },
     ],
     coinTiles: [
-      { x: 3, y: 6 }, { x: 6, y: 4 }, { x: 11, y: 5 },
-      { x: 15, y: 3 }, { x: 23, y: 2 }, { x: 30, y: 4 },
-      { x: 37, y: 6 }, { x: 44, y: 5 }, { x: 46, y: 1 },
-      { x: 50, y: 4 }, { x: 59, y: 2 }, { x: 65, y: 4 },
-      { x: 76, y: 6 }, { x: 81, y: 4 }, { x: 88, y: 5 },
-      { x: 96, y: 1 }, { x: 104, y: 3 }, { x: 111, y: 5 },
+      { x: 3, y: 6 },   { x: 6, y: 4 },   { x: 11, y: 5 },
+      { x: 15, y: 3 },  { x: 23, y: 2 },  { x: 30, y: 4 },
+      { x: 37, y: 6 },  { x: 44, y: 5 },  { x: 46, y: 1 },
+      { x: 50, y: 4 },  { x: 59, y: 2 },  { x: 65, y: 4 },
+      { x: 73, y: 6 },  { x: 79, y: 4 },  { x: 86, y: 5 },
+      { x: 95, y: 2 },  { x: 103, y: 4 }, { x: 111, y: 3 },
+      { x: 119, y: 5 }, { x: 127, y: 1 }, { x: 133, y: 3 },
+      { x: 141, y: 5 }, { x: 152, y: 2 }, { x: 164, y: 4 },
+      { x: 176, y: 5 }, { x: 188, y: 3 }, { x: 200, y: 5 },
     ],
-    heartTiles: [{ x: 18, y: 3 }, { x: 53, y: 4 }, { x: 98, y: 4 }],
-    starTiles:  [{ x: 45, y: 1 }],
-    speedTiles: [{ x: 23, y: 2 }, { x: 86, y: 4 }],
+    heartTiles: [
+      { x: 18, y: 3 }, { x: 53, y: 4 },
+      { x: 113, y: 4 }, { x: 170, y: 4 },
+    ],
+    starTiles:  [{ x: 45, y: 1 }, { x: 128, y: 1 }],
+    speedTiles: [{ x: 23, y: 2 }, { x: 86, y: 4 }, { x: 160, y: 3 }],
     bgTop:           "#080E1E",
     bgBottom:        "#101828",
     tileColor:       "#2C3854",
@@ -456,32 +557,46 @@ export const LEVELS: LevelData[] = [
     name: "Templo Maldito",
     tiles: appendEncoreSection(buildLevel5(), 5),
     playerStartTile: { x: 1, y: 7 },
-    goalTile: { x: 116, y: 5 },
+    goalTile: { x: 211, y: 5 },
     enemySpawns: [
-      { tileX: 6,  tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 13, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 23, tileY: 8, type: "shooter", patrolRange: 1 },
-      { tileX: 28, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 35, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 45, tileY: 8, type: "shooter", patrolRange: 1 },
-      { tileX: 50, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 57, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 67, tileY: 8, type: "shooter", patrolRange: 1 },
-      { tileX: 82, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 94, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 109, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 6,   tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 13,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 23,  tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 28,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 35,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 45,  tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 50,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 57,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 67,  tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 80,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 91,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 102, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 113, tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 124, tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 135, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 146, tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 163, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 180, tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 198, tileY: 8, type: "shooter", patrolRange: 1 },
     ],
     coinTiles: [
-      { x: 4, y: 4 }, { x: 6, y: 8 }, { x: 14, y: 3 },
+      { x: 4, y: 4 },  { x: 6, y: 8 },  { x: 14, y: 3 },
       { x: 23, y: 2 }, { x: 34, y: 4 }, { x: 36, y: 2 },
       { x: 45, y: 3 }, { x: 47, y: 5 }, { x: 57, y: 3 },
       { x: 60, y: 2 }, { x: 67, y: 4 }, { x: 71, y: 7 },
       { x: 80, y: 6 }, { x: 85, y: 4 }, { x: 91, y: 5 },
-      { x: 99, y: 3 }, { x: 107, y: 4 }, { x: 114, y: 5 },
+      { x: 99, y: 3 }, { x: 107, y: 4 }, { x: 115, y: 2 },
+      { x: 123, y: 5 }, { x: 131, y: 3 }, { x: 139, y: 4 },
+      { x: 147, y: 2 }, { x: 155, y: 5 }, { x: 165, y: 3 },
+      { x: 174, y: 4 }, { x: 185, y: 5 }, { x: 196, y: 3 },
+      { x: 205, y: 5 },
     ],
-    heartTiles: [{ x: 15, y: 3 }, { x: 55, y: 3 }, { x: 103, y: 4 }],
-    starTiles:  [{ x: 35, y: 2 }],
-    speedTiles: [{ x: 58, y: 2 }, { x: 89, y: 4 }],
+    heartTiles: [
+      { x: 15, y: 3 }, { x: 55, y: 3 },
+      { x: 118, y: 4 }, { x: 178, y: 4 },
+    ],
+    starTiles:  [{ x: 35, y: 2 }, { x: 130, y: 2 }],
+    speedTiles: [{ x: 58, y: 2 }, { x: 100, y: 4 }, { x: 185, y: 4 }],
     bgTop:           "#140800",
     bgBottom:        "#261200",
     tileColor:       "#5C3010",
@@ -493,32 +608,48 @@ export const LEVELS: LevelData[] = [
     name: "Cima Volcánica",
     tiles: appendEncoreSection(buildLevel6(), 6),
     playerStartTile: { x: 1, y: 7 },
-    goalTile: { x: 126, y: 5 },
-    bossSpawn: { tileX: 112, tileY: 8 },
+    goalTile: { x: 226, y: 5 },
+    bossSpawn: { tileX: 195, tileY: 8 },
     enemySpawns: [
-      { tileX: 4,  tileY: 6, type: "basic",   patrolRange: 2 },
-      { tileX: 12, tileY: 5, type: "jumper",  patrolRange: 2 },
-      { tileX: 18, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 25, tileY: 4, type: "shooter", patrolRange: 1 },
-      { tileX: 32, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 38, tileY: 8, type: "basic",   patrolRange: 2 },
-      { tileX: 44, tileY: 6, type: "shooter", patrolRange: 1 },
-      { tileX: 49, tileY: 8, type: "jumper",  patrolRange: 2 },
-      { tileX: 72, tileY: 8, type: "basic",   patrolRange: 3 },
-      { tileX: 86, tileY: 8, type: "jumper",  patrolRange: 3 },
-      { tileX: 99, tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 4,   tileY: 6, type: "basic",   patrolRange: 2 },
+      { tileX: 12,  tileY: 5, type: "jumper",  patrolRange: 2 },
+      { tileX: 18,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 25,  tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 32,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 38,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 44,  tileY: 6, type: "shooter", patrolRange: 1 },
+      { tileX: 49,  tileY: 8, type: "jumper",  patrolRange: 2 },
+      { tileX: 56,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 63,  tileY: 6, type: "shooter", patrolRange: 1 },
+      { tileX: 70,  tileY: 8, type: "jumper",  patrolRange: 2 },
+      { tileX: 78,  tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 85,  tileY: 6, type: "shooter", patrolRange: 1 },
+      { tileX: 93,  tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 100, tileY: 4, type: "shooter", patrolRange: 1 },
+      { tileX: 120, tileY: 8, type: "basic",   patrolRange: 3 },
+      { tileX: 135, tileY: 8, type: "jumper",  patrolRange: 3 },
+      { tileX: 148, tileY: 8, type: "shooter", patrolRange: 1 },
+      { tileX: 175, tileY: 8, type: "basic",   patrolRange: 2 },
+      { tileX: 190, tileY: 8, type: "shooter", patrolRange: 1 },
     ],
     coinTiles: [
-      { x: 3, y: 6 }, { x: 7, y: 4 }, { x: 12, y: 4 },
-      { x: 17, y: 5 }, { x: 22, y: 6 }, { x: 28, y: 2 },
-      { x: 33, y: 6 }, { x: 39, y: 5 }, { x: 44, y: 5 },
-      { x: 49, y: 4 }, { x: 56, y: 7 }, { x: 62, y: 7 },
-      { x: 72, y: 6 }, { x: 79, y: 4 }, { x: 86, y: 5 },
-      { x: 94, y: 3 }, { x: 102, y: 4 }, { x: 118, y: 7 },
+      { x: 3, y: 6 },   { x: 7, y: 4 },   { x: 12, y: 4 },
+      { x: 17, y: 5 },  { x: 22, y: 6 },  { x: 28, y: 2 },
+      { x: 33, y: 6 },  { x: 39, y: 5 },  { x: 44, y: 5 },
+      { x: 49, y: 4 },  { x: 57, y: 7 },  { x: 62, y: 7 },
+      { x: 70, y: 5 },  { x: 77, y: 6 },  { x: 84, y: 4 },
+      { x: 91, y: 5 },  { x: 98, y: 3 },  { x: 107, y: 4 },
+      { x: 115, y: 7 }, { x: 122, y: 6 }, { x: 130, y: 5 },
+      { x: 138, y: 4 }, { x: 146, y: 3 }, { x: 155, y: 5 },
+      { x: 165, y: 7 }, { x: 175, y: 4 }, { x: 185, y: 5 },
+      { x: 195, y: 7 }, { x: 208, y: 7 }, { x: 220, y: 7 },
     ],
-    heartTiles: [{ x: 16, y: 3 }, { x: 46, y: 2 }, { x: 96, y: 4 }],
-    starTiles:  [{ x: 29, y: 1 }],
-    speedTiles: [{ x: 50, y: 3 }, { x: 103, y: 3 }],
+    heartTiles: [
+      { x: 16, y: 3 }, { x: 46, y: 2 },
+      { x: 108, y: 4 }, { x: 180, y: 4 },
+    ],
+    starTiles:  [{ x: 29, y: 1 }, { x: 99, y: 2 }],
+    speedTiles: [{ x: 50, y: 3 }, { x: 136, y: 3 }, { x: 210, y: 3 }],
     bgTop:           "#120000",
     bgBottom:        "#300000",
     tileColor:       "#6B1010",
