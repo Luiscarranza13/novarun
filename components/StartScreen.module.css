@@ -1,0 +1,181 @@
+.screen {
+  background: linear-gradient(160deg, #0d0026 0%, #1a0533 40%, #0d1b2a 100%);
+}
+
+.kicker {
+  color: #888;
+}
+
+.logoTitle {
+  font-size: clamp(52px, 8vw, 80px);
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c42 30%, #ff2266 55%, #7b68ee 80%, #7bbbd4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 30px rgba(255,215,0,0.4));
+}
+
+.subtitle {
+  color: #a9a9ff;
+}
+
+.mutedText {
+  color: #ccc;
+}
+
+.orb {
+  border-width: 4px;
+  border-style: solid;
+  animation-name: spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.orb0 {
+  width: 60px;
+  height: 60px;
+  left: 30%;
+  top: 10%;
+  border-color: #ffd700;
+  animation-duration: 8s;
+}
+
+.orb1 {
+  width: 100px;
+  height: 100px;
+  left: 77%;
+  top: 9%;
+  border-color: #ff8c42;
+  animation-duration: 11s;
+}
+
+.orb2 {
+  width: 140px;
+  height: 140px;
+  left: 34%;
+  top: 8%;
+  border-color: #88aaff;
+  animation-duration: 14s;
+}
+
+.orb3 {
+  width: 180px;
+  height: 180px;
+  left: 81%;
+  top: 7%;
+  border-color: #9b59b6;
+  animation-duration: 17s;
+}
+
+.orb4 {
+  width: 220px;
+  height: 220px;
+  left: 38%;
+  top: 6%;
+  border-color: #ff6600;
+  animation-duration: 20s;
+}
+
+.orb5 {
+  width: 260px;
+  height: 260px;
+  left: 85%;
+  top: 5%;
+  border-color: #228b22;
+  animation-duration: 23s;
+}
+
+.diffButton {
+  color: rgba(255,255,255,0.35);
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+}
+
+.diffButton[data-difficulty="easy"][data-active="true"] {
+  color: #4ade80;
+  border-color: #4ade80;
+  background: rgba(74,222,128,0.13);
+  box-shadow: 0 0 12px rgba(74,222,128,0.27);
+}
+
+.diffButton[data-difficulty="normal"][data-active="true"] {
+  color: #facc15;
+  border-color: #facc15;
+  background: rgba(250,204,21,0.13);
+  box-shadow: 0 0 12px rgba(250,204,21,0.27);
+}
+
+.diffButton[data-difficulty="hard"][data-active="true"] {
+  color: #f87171;
+  border-color: #f87171;
+  background: rgba(248,113,113,0.13);
+  box-shadow: 0 0 12px rgba(248,113,113,0.27);
+}
+
+.playButton {
+  color: #fff;
+  letter-spacing: 0.2em;
+  background: linear-gradient(135deg, #7c3aed, #c026d3, #e11d48);
+  box-shadow: 0 0 40px rgba(192,38,211,0.3), 0 4px 20px rgba(0,0,0,0.4);
+  transition: transform 0.15s ease, box-shadow 0.7s ease;
+}
+
+.playButton[data-pulse="true"] {
+  box-shadow: 0 0 40px rgba(192,38,211,0.7), 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.demoButton {
+  color: #07111f;
+  letter-spacing: 0.16em;
+  background: linear-gradient(135deg, #7dd3fc, #86efac);
+  box-shadow: 0 0 28px rgba(125,211,252,0.28), 0 4px 20px rgba(0,0,0,0.34);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.demoButton:hover {
+  box-shadow: 0 0 34px rgba(134,239,172,0.42), 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.showcaseIcon {
+  --showcase-color: #fff;
+  transform: scale(1);
+  transition: transform 0.2s;
+}
+
+.showcaseIcon[data-hovered="true"] {
+  transform: translateY(-8px) scale(1.08);
+}
+
+.showcaseIcon[data-showcase="pikachu"] { --showcase-color: #ffd700; }
+.showcaseIcon[data-showcase="charizard"] { --showcase-color: #ff8c42; }
+.showcaseIcon[data-showcase="lugia"] { --showcase-color: #88aaff; }
+.showcaseIcon[data-showcase="mewtwo"] { --showcase-color: #9b59b6; }
+.showcaseIcon[data-showcase="hooh"] { --showcase-color: #ff6600; }
+.showcaseIcon[data-showcase="rayquaza"] { --showcase-color: #228b22; }
+.showcaseIcon[data-showcase="gengar"] { --showcase-color: #7b68ee; }
+
+.iconFrame {
+  border: 2px solid color-mix(in srgb, var(--showcase-color) 33%, transparent);
+  background: color-mix(in srgb, var(--showcase-color) 13%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--showcase-color) 13%, transparent);
+}
+
+.showcaseIcon[data-hovered="true"] .iconFrame {
+  border-color: var(--showcase-color);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--showcase-color) 53%, transparent);
+}
+
+.iconCanvas {
+  display: block;
+  width: 56px;
+  height: 64px;
+}
+
+.iconName {
+  color: var(--showcase-color);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

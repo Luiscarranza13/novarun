@@ -512,7 +512,8 @@ export class GameEngine {
       sfx.stopBGM();
       sfx.victory();
       const elapsed = Math.floor((Date.now() - this.levelStartTime) / 1000);
-      const isHighScore = saveHighScore(this.levelIndex, this.score);
+      const isDemoLevel = level.id === 7;
+      const isHighScore = isDemoLevel ? false : saveHighScore(this.levelIndex, this.score);
       this.callbacks.onStatsReady?.({
         timeSeconds:    elapsed,
         enemiesKilled:  this.enemiesKilled,
@@ -520,6 +521,7 @@ export class GameEngine {
         isHighScore,
       });
       this.callbacks.onStateChange("victory");
+      if (isDemoLevel) return;
       // Per-level achievements
       if (elapsed < 90 && unlockAchievement("speed_run"))        this.callbacks.onAchievement?.("speed_run");
       if (!this.playerTookDamage && unlockAchievement("untouchable")) this.callbacks.onAchievement?.("untouchable");
@@ -1234,7 +1236,19 @@ export class GameEngine {
   ) {
     const T = TILE_SIZE;
 
-    if (levelId === 1) {
+    if (levelId === 7) {
+      ctx.fillStyle = "#6BBF45";
+      ctx.fillRect(x, y, T, T);
+      if (!hasAbove) {
+        ctx.fillStyle = "#93E05B";
+        ctx.fillRect(x, y, T, 8);
+        ctx.fillStyle = "rgba(255,255,255,0.22)";
+        ctx.fillRect(x, y, T, 2);
+      }
+      ctx.fillStyle = "rgba(43,84,30,0.28)";
+      ctx.fillRect(x, y + T - 6, T, 6);
+
+    } else if (levelId === 1) {
       // ─── Route 1: grass/dirt block ────────────────────────────────────────
       // Dirt body
       ctx.fillStyle = "#7B4F1E";

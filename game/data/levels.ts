@@ -441,6 +441,12 @@ function appendEncoreSection(map: TileType[][], levelId: number): TileType[][] {
 
 // ─── Level registry ───────────────────────────────────────────────────────────
 
+function buildDemoLevel(): TileType[][] {
+  const map = emptyMap(12, 120);
+  for (let row = 9; row <= 11; row++) fillRow(map, row, 0, 119, 1);
+  return map;
+}
+
 export const LEVELS: LevelData[] = [
   {
     id: 1,
@@ -788,5 +794,22 @@ export const LEVELS: LevelData[] = [
     tileColor:       "#6B1010",
     platformColor:   "#9B2020",
     decorationColor: "#D03030",
+  },
+  {
+    id: 7,
+    name: "Demo Voz",
+    tiles: buildDemoLevel(),
+    playerStartTile: { x: 1, y: 7 },
+    goalTile: { x: 112, y: 5 },
+    enemySpawns: [],
+    coinTiles: [],
+    heartTiles: [],
+    starTiles: [],
+    speedTiles: [],
+    bgTop:           "#64B5F6",
+    bgBottom:        "#B3E5FC",
+    tileColor:       "#4E9A35",
+    platformColor:   "#7BC950",
+    decorationColor: "#B9E769",
   },
 ];

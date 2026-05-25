@@ -103,7 +103,7 @@ export default function LevelSelect({ onSelect, onBack }: Props) {
       </div>
 
       <div className={styles.grid}>
-        {LEVELS.map((level, i) => {
+        {LEVELS.slice(0, LEVEL_META.length).map((level, i) => {
           const meta      = LEVEL_META[i];
           const isUnlocked = unlocked[i];
           const score     = scores[i];

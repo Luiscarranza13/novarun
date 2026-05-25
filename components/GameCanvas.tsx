@@ -5,6 +5,7 @@ import type { PointerEvent } from "react";
 import { useGameEngine } from "@/hooks/useGameEngine";
 import { CreatureData } from "@/types/game";
 import { LEVELS } from "@/game/data/levels";
+import { CREATURES } from "@/game/data/creatures";
 import { sfx } from "@/game/SoundEngine";
 
 import { classifyVoiceCommand, VOICE_GRAMMAR } from "@/game/voiceUtils";
@@ -179,6 +180,18 @@ export default function GameCanvas() {
     }
   }, [lastCreature, currentLevel, playGameMusic, startGame, difficulty]);
 
+  const handleDemo = useCallback(() => {
+    const demoLevel = LEVELS.length - 1;
+    const demoCreature = CREATURES[0];
+    pauseMenuMusic();
+    setCurrentLevel(demoLevel);
+    setLastCreature(demoCreature);
+    setGameMusicMuted(false);
+    setGameTrackIndex(demoLevel % GAME_TRACKS.length);
+    playGameMusic();
+    startGame(demoCreature, demoLevel, difficulty);
+  }, [difficulty, pauseMenuMusic, playGameMusic, startGame]);
+
   // Pause menu: resume resumes game music too
   const handleResume = useCallback(() => {
     resumeGame();
@@ -299,6 +312,7 @@ export default function GameCanvas() {
       {gameState === "menu" && !showHow && !showCredits && (
         <StartScreen
           onPlay={() => { playMenuMusic(); goToLevelSelect(); }}
+          onDemo={handleDemo}
           onAbout={() => setShowHow(true)}
           onCredits={() => setShowCredits(true)}
           difficulty={difficulty}
